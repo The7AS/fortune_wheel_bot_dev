@@ -349,6 +349,13 @@
         .db-status { font-size: 0.75rem; color: var(--muted-text); text-align: center; margin-top: 10px; }
         .db-status .ok { color: #4caf50; }
         .db-status .err { color: #e94560; }
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: #fff; padding: 10px 24px; border-radius: 25px;
+            font-size: 0.85rem; z-index: 10000; white-space: nowrap;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        #toast.active { opacity: 1; }
 
         .presets-list { list-style: none; margin: 10px 0; max-height: 200px; overflow-y: auto; }
         .presets-list li {
@@ -559,6 +566,7 @@
         </div>
     </div>
 </div>
+<div id="toast"></div>
 <div class="modal" id="adminModal">
     <div class="modal-content admin-panel">
         <h2>Админ-панель</h2>
@@ -576,6 +584,7 @@
     const tg = window.Telegram.WebApp;
     tg.ready();
     function showAlert(msg) { try { window.Telegram.WebApp.showAlert(msg); } catch(e) { alert(msg); } }
+    function toast(msg) { const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('active'); clearTimeout(t._hide); t._hide=setTimeout(()=>t.classList.remove('active'),3000); }
 
     let db = null;
     try {
@@ -1294,10 +1303,11 @@
             const resetSpins = document.createElement('button');
             resetSpins.className = 'reset-spins';
             resetSpins.textContent = 'Спины';
+            const userId = u.telegramId || u.id;
             resetSpins.addEventListener('click', async () => {
                 if (!confirm(`Сбросить спины пользователю ${u.nickname || u.firstName}?`)) return;
-                await db.ref('users/' + u.telegramId).update({ spins: 0 });
-                showAlert('Спины сброшены');
+                await db.ref('users/' + userId).update({ spins: 0 });
+                toast('Спины сброшены');
                 loadAllUsers();
             });
             const resetBal = document.createElement('button');
@@ -1305,8 +1315,8 @@
             resetBal.textContent = 'Баланс';
             resetBal.addEventListener('click', async () => {
                 if (!confirm(`Сбросить баланс пользователю ${u.nickname || u.firstName}?`)) return;
-                await db.ref('users/' + u.telegramId).update({ fart: 0 });
-                showAlert('Баланс сброшен');
+                await db.ref('users/' + userId).update({ fart: 0 });
+                toast('Баланс сброшен');
                 loadAllUsers();
             });
             // Добавление баланса
@@ -1323,14 +1333,14 @@
                 if (isNaN(val) || val < 1) { showAlert('Введите сумму от 1 F'); return; }
                 if (!confirm(`Добавить ${val} F пользователю ${u.nickname || u.firstName}?`)) return;
                 try {
-                    const snap = await db.ref('users/' + u.telegramId + '/fart').once('value');
+                    const snap = await db.ref('users/' + userId + '/fart').once('value');
                     const current = snap.val() || 0;
-                    await db.ref('users/' + u.telegramId).update({ fart: current + val });
-                    showAlert(`Баланс пополнен на ${val} F`);
+                    await db.ref('users/' + userId).update({ fart: current + val });
+                    toast(`Баланс пополнен на ${val} F`);
                     addInput.value = '';
                     loadAllUsers();
                 } catch (e) {
-                    showAlert('Ошибка: ' + e.message);
+                    toast('Ошибка: ' + e.message);
                 }
             });
             addRow.appendChild(addInput);
