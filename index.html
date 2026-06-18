@@ -240,22 +240,75 @@
             padding: 10px 24px; border: none; border-radius: 30px;
             background: var(--accent); color: white; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s;
         }
-        .volume-row { display: flex; align-items: center; gap: 12px; }
+        /* Улучшенный инпут никнейма */
+        .modern-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 2px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .modern-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.3);
+        }
+        .modern-input::placeholder {
+            color: var(--muted-text);
+            font-weight: 400;
+        }
+        /* Строка громкости */
+        .volume-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .volume-row label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
         .volume-row input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
-            height: 8px;
+            height: 4px;
             background: var(--input-bg);
-            border-radius: 4px;
+            border-radius: 2px;
             outline: none;
         }
         .volume-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             background: var(--accent);
             border-radius: 4px;
             cursor: pointer;
+        }
+        /* Кнопки настроек */
+        .settings-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .settings-btn-action {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 30px;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .settings-btn-action:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
         }
 
         .presets-list { list-style: none; margin: 10px 0; max-height: 200px; overflow-y: auto; }
@@ -409,9 +462,9 @@
     <div class="modal-content">
         <h2>Настройки</h2>
         <label>Никнейм</label>
-        <input type="text" id="nicknameInput" placeholder="Твой ник...">
-        <label>Громкость</label>
+        <input type="text" id="nicknameInput" class="modern-input" placeholder="сменить">
         <div class="volume-row">
+            <label>Громкость</label>
             <input type="range" id="volumeSlider" min="0" max="100" value="50">
             <span id="volumeValue">50%</span>
         </div>
@@ -422,9 +475,9 @@
         <div id="adminPanelBtn" style="margin-top:12px; display:none;">
             <button id="openAdminPanel">Панель администратора</button>
         </div>
-        <div style="margin-top:24px; text-align:center;">
-            <button id="saveSettings">Сохранить</button>
-            <button id="closeSettings">Закрыть</button>
+        <div class="settings-actions">
+            <button id="saveSettings" class="settings-btn-action">Сохранить</button>
+            <button id="closeSettings" class="settings-btn-action">Закрыть</button>
         </div>
     </div>
 </div>
@@ -441,7 +494,7 @@
 </div>
 
 <script>
-    const ADMIN_ID = 452456163;
+    const ADMIN_ID = 'ВАШ_TELEGRAM_ID'; // ← замените на свой числовой ID
     const tg = window.Telegram.WebApp;
     tg.ready();
 
@@ -537,7 +590,7 @@
         dailyBonusUsed = (localStorage.getItem('dailyBonusDate') === today);
     }
 
-    // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
+    // Переключение режимов
     document.querySelectorAll('.mode-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const mode = opt.dataset.mode;
@@ -561,7 +614,7 @@
         });
     });
 
-    // ========== БАЛАНС ==========
+    // Баланс
     document.getElementById('balanceBlock').addEventListener('click', () => {
         tg.showPopup({
             title: 'Пополнение FORT',
@@ -576,7 +629,7 @@
         });
     });
 
-    // ========== СТАВКИ (ДОНАТ) ==========
+    // Ставки (донат)
     document.querySelectorAll('#betAmounts .bet-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
@@ -591,7 +644,7 @@
         document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
     });
 
-    // ========== ДОНАТ-СПИН ==========
+    // Донат-спин
     document.getElementById('donateWheelContainer').addEventListener('click', () => {
         if (isDonateSpinning) return;
         if (fortBalance < selectedBet && dailyBonusUsed) { tg.showAlert('Недостаточно FORT'); return; }
@@ -614,7 +667,7 @@
         donateAnimationId = requestAnimationFrame(donateSpinAnimation);
     });
 
-    // ========== ДОНАТ-КОЛЕСО: ОТРИСОВКА И АНИМАЦИЯ ==========
+    // Донат-колесо отрисовка и анимация
     function drawDonateWheel() {
         const canvas = document.getElementById('donateWheelCanvas');
         const ctx = canvas.getContext('2d');
@@ -686,7 +739,7 @@
         } else { donateAnimationId = requestAnimationFrame(donateSpinAnimation); }
     }
 
-    // ========== ПОВСЕДНЕВНОЕ КОЛЕСО ==========
+    // Повседневное колесо
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
     const wheelContainer = document.getElementById('wheelContainer');
@@ -804,7 +857,7 @@
         o.start(); o.stop(audioCtx.currentTime+0.05);
     }
 
-    // ========== ПАНЕЛЬ ОПЦИЙ ==========
+    // Панель опций
     const optionsListDiv = document.getElementById('optionsList');
     document.getElementById('chanceSwitch').addEventListener('change', e => {
         useWeights = e.target.checked; if (!useWeights) options.forEach(o => o.weight = 1); renderOptions();
@@ -838,7 +891,7 @@
         if (options.length && confirm('Удалить все варианты?')) { options = []; renderOptions(); }
     });
 
-    // ========== МАССОВОЕ ДОБАВЛЕНИЕ ==========
+    // Массовое добавление
     const massAddModal = document.getElementById('massAddModal');
     document.getElementById('massAddBtn').addEventListener('click', () => massAddModal.classList.add('active'));
     document.getElementById('closeMassAddModal').addEventListener('click', () => massAddModal.classList.remove('active'));
@@ -851,7 +904,7 @@
         massAddModal.classList.remove('active');
     });
 
-    // ========== ПРЕСЕТЫ ==========
+    // Пресеты
     const presetsModal = document.getElementById('presetsModal');
     document.getElementById('presetsBtn').addEventListener('click', () => { renderPresetsList(); presetsModal.classList.add('active'); });
     document.getElementById('closePresetsModal').addEventListener('click', () => presetsModal.classList.remove('active'));
@@ -881,10 +934,8 @@
         renderPresetsList();
     });
 
-    // ========== РЕЗУЛЬТАТ ==========
     document.getElementById('closeResultBtn').addEventListener('click', () => document.getElementById('resultOverlay').classList.remove('active'));
 
-    // ========== ЗВУК ==========
     let audioCtx = null, muted = false, globalVolume = 0.5;
     function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     document.body.addEventListener('click', initAudio, { once: true });
@@ -899,7 +950,6 @@
         o.start(); o.stop(audioCtx.currentTime+0.2);
     }
 
-    // ========== ЛИДЕРБОРД ==========
     function loadAllUsers() {
         if (!db) return;
         db.ref('users').orderByChild('spins').limitToLast(50).on('value', snap => {
@@ -944,7 +994,6 @@
         });
     });
 
-    // ========== НАСТРОЙКИ ==========
     const settingsModal = document.getElementById('settingsModal');
     document.getElementById('openSettings').addEventListener('click', () => {
         settingsModal.classList.add('active');
@@ -959,7 +1008,6 @@
     });
     document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.remove('active'));
 
-    // Сброс своей статистики
     document.getElementById('resetStatsBtn').addEventListener('click', async () => {
         if (!currentUserTelegramId || !db) { alert('Недоступно'); return; }
         const userRef = db.ref('users/' + currentUserTelegramId);
@@ -977,7 +1025,6 @@
         loadAllUsers();
     });
 
-    // Сохранение настроек
     document.getElementById('saveSettings').addEventListener('click', async () => {
         if (!currentUserTelegramId) { alert('Войдите через Telegram'); return; }
         if (!db) { alert('База данных не подключена'); return; }
@@ -999,7 +1046,6 @@
         settingsModal.classList.remove('active');
     });
 
-    // ========== АДМИН-ПАНЕЛЬ ==========
     function renderAdminPanel() {
         if (!isAdmin) return;
         const container = document.getElementById('adminUserList');
@@ -1035,7 +1081,6 @@
         document.getElementById('adminTotalSpins').textContent = totalSpins;
     }
 
-    // ========== ТЕМА ==========
     const themeToggle = document.getElementById('themeToggle');
     function setTheme(light) {
         document.body.classList.toggle('light-theme', light);
