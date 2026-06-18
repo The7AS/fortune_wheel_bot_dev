@@ -600,9 +600,12 @@
         firebase.storage = undefined;
         db = firebase.database();
         console.log('Firebase ready');
-        // проверка подключения к Firebase
+        // диагностика
         db.ref('.info/serverTimeOffset').once('value').then(() => {
             document.getElementById('dbStatusText').innerHTML = '<span class="ok">подключена</span>';
+            // тестовая запись
+            db.ref('_diag').set({ts: Date.now()}).then(() => console.log('Firebase WRITE OK'))
+                .catch(e => console.error('Firebase WRITE FAIL:', e));
         }).catch(() => {
             document.getElementById('dbStatusText').innerHTML = '<span class="err">недоступна</span>';
         });
