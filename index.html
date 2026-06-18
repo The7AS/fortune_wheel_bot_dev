@@ -73,6 +73,7 @@
             background: var(--surface); padding: 6px 12px; border-radius: 30px; box-shadow: var(--shadow);
         }
         .user-badge img { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--accent); }
+        .admin-nick { color: #ff4444 !important; }
         .main-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
         .mode-switch { display: flex; background: var(--input-bg); border-radius: 14px; padding: 6px; margin-bottom: 10px; }
         .mode-option {
@@ -240,7 +241,23 @@
             background: var(--accent); color: white; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s;
         }
         .volume-row { display: flex; align-items: center; gap: 12px; }
-        .volume-row input[type="range"] { flex: 1; }
+        .volume-row input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--input-bg);
+            border-radius: 4px;
+            outline: none;
+        }
+        .volume-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
         .presets-list { list-style: none; margin: 10px 0; max-height: 200px; overflow-y: auto; }
         .presets-list li {
             display: flex; justify-content: space-between; align-items: center;
@@ -250,6 +267,15 @@
         .presets-list li button {
             background: var(--accent); border: none; color: white;
             padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;
+        }
+        .admin-panel .user-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 10px; background: var(--input-bg); border-radius: 12px; margin-bottom: 8px;
+        }
+        .admin-panel .user-row span { flex: 1; }
+        .admin-panel button {
+            padding: 4px 12px; border-radius: 20px; border: none;
+            background: var(--accent); color: white; font-size: 0.8rem; cursor: pointer;
         }
 
         @media (min-width: 500px) {
@@ -295,11 +321,11 @@
         </div>
         <div class="options-panel" id="optionsPanel">
             <div class="chance-toggle">
-                <span class="toggle-label">🎲 Шансы</span>
+                <span class="toggle-label">Шансы</span>
                 <label class="switch"><input type="checkbox" id="chanceSwitch"><span class="slider"></span></label>
             </div>
             <div class="fast-spin-toggle">
-                <span class="toggle-label">⚡ Быстрый спин</span>
+                <span class="toggle-label">Быстрый спин</span>
                 <label class="switch"><input type="checkbox" id="fastSpinSwitch"><span class="slider"></span></label>
             </div>
             <div id="optionsList"></div>
@@ -351,18 +377,18 @@
 
 <div class="result-overlay" id="resultOverlay">
     <div class="result-content">
-        <h2 id="resultTitle">🎉 Поздравляем, Ваш результат:</h2>
+        <h2 id="resultTitle">Поздравляем, Ваш результат:</h2>
         <span class="result-text" id="resultText"></span>
         <div class="result-buttons">
             <button id="closeResultBtn" style="background: var(--accent); color: white; border: none; padding: 12px 30px; border-radius: 30px; font-size: 1rem; cursor: pointer;">Закрыть</button>
-            <button id="shareResultBtn" style="background: #4caf50; color: white; border: none; padding: 12px 30px; border-radius: 30px; font-size: 1rem; cursor: pointer;">📤 Поделиться</button>
+            <button id="shareResultBtn" style="background: #4caf50; color: white; border: none; padding: 12px 30px; border-radius: 30px; font-size: 1rem; cursor: pointer;">Поделиться</button>
         </div>
     </div>
 </div>
 
 <div class="modal" id="massAddModal">
     <div class="modal-content">
-        <h2>✍️ Массовое добавление</h2>
+        <h2>Массовое добавление</h2>
         <textarea id="massAddTextarea" placeholder="Пицца, Бургер, Салат..."></textarea>
         <button id="applyMassAdd">Добавить</button>
         <button id="closeMassAddModal" style="margin-top:10px;">Закрыть</button>
@@ -373,7 +399,7 @@
         <h2>Ваши варианты</h2>
         <div style="display:flex; gap:8px; margin-bottom:15px;">
             <input type="text" id="presetNameInput" placeholder="Название пресета" style="flex:1; padding:10px; border-radius:10px; border:none; background:var(--input-bg); color:var(--text);">
-            <button id="savePresetBtn">💾 Сохранить</button>
+            <button id="savePresetBtn">Сохранить</button>
         </div>
         <ul class="presets-list" id="presetsList"></ul>
         <button id="closePresetsModal" style="margin-top:10px;">Закрыть</button>
@@ -381,23 +407,41 @@
 </div>
 <div class="modal" id="settingsModal">
     <div class="modal-content">
-        <h2>⚙️ Настройки</h2>
+        <h2>Настройки</h2>
         <label>Никнейм</label>
         <input type="text" id="nicknameInput" placeholder="Твой ник...">
-        <label>🔊 Громкость</label>
+        <label>Громкость</label>
         <div class="volume-row">
             <input type="range" id="volumeSlider" min="0" max="100" value="50">
             <span id="volumeValue">50%</span>
         </div>
-        <label><input type="checkbox" id="muteCheckbox"> 🔇 Без звука</label>
-        <div style="margin-top:24px; text-align:center;">
-            <button id="saveSettings">💾 Сохранить</button>
-            <button id="closeSettings">✖ Закрыть</button>
+        <label><input type="checkbox" id="muteCheckbox"> Без звука</label>
+        <div style="margin-top:12px;">
+            <button id="resetStatsBtn">Сбросить статистику</button>
         </div>
+        <div id="adminPanelBtn" style="margin-top:12px; display:none;">
+            <button id="openAdminPanel">Панель администратора</button>
+        </div>
+        <div style="margin-top:24px; text-align:center;">
+            <button id="saveSettings">Сохранить</button>
+            <button id="closeSettings">Закрыть</button>
+        </div>
+    </div>
+</div>
+<div class="modal" id="adminModal">
+    <div class="modal-content admin-panel">
+        <h2>Админ-панель</h2>
+        <div style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+            <div id="adminUserList"></div>
+        </div>
+        <div style="margin-top:10px;"><strong>Всего пользователей:</strong> <span id="adminTotalUsers">0</span></div>
+        <div><strong>Всего спинов:</strong> <span id="adminTotalSpins">0</span></div>
+        <button id="closeAdminModal" style="margin-top:15px;">Закрыть</button>
     </div>
 </div>
 
 <script>
+    const ADMIN_ID = 452456163;
     const tg = window.Telegram.WebApp;
     tg.ready();
 
@@ -418,6 +462,7 @@
     } catch (e) { console.warn('No Firebase:', e); }
 
     let currentUserTelegramId = null;
+    let isAdmin = false;
     let allUsersData = [];
     let friendIds = new Set();
     let currentTab = 'world';
@@ -426,15 +471,14 @@
     let selectedBet = 10;
     let dailyBonusUsed = false;
 
-    // Яркая палитра донатного колеса
     const donateSectors = [
-        { label: 'x2', weight: 12, color: '#FFD700' },     // золотой
-        { label: 'x0', weight: 38, color: '#C62828' },     // тёмно-красный
-        { label: 'x1', weight: 25, color: '#2E7D32' },     // изумрудный
-        { label: 'x0.5', weight: 20, color: '#EF6C00' },   // оранжевый
-        { label: 'Джекпот', weight: 3, color: '#6A1B9A' }, // фиолетовый
-        { label: 'x3', weight: 1, color: '#1565C0' },      // синий
-        { label: 'Бесплатно', weight: 1, color: '#00838F' }// бирюзовый
+        { label: 'x2', weight: 12, color: '#FFD700' },
+        { label: 'x0', weight: 38, color: '#C62828' },
+        { label: 'x1', weight: 25, color: '#2E7D32' },
+        { label: 'x0.5', weight: 20, color: '#EF6C00' },
+        { label: 'Джекпот', weight: 3, color: '#6A1B9A' },
+        { label: 'x3', weight: 1, color: '#1565C0' },
+        { label: 'Бесплатно', weight: 1, color: '#00838F' },
     ];
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
@@ -442,12 +486,15 @@
     if (initData && initData.user) {
         const user = initData.user;
         currentUserTelegramId = user.id.toString();
+        isAdmin = (currentUserTelegramId === ADMIN_ID);
         const firstName = user.first_name || 'Пользователь';
         const username = user.username || '';
         const photoUrl = user.photo_url || '';
 
         document.getElementById('userBadge').style.display = 'flex';
-        document.getElementById('userNickDisplay').textContent = firstName;
+        const nickDisplay = document.getElementById('userNickDisplay');
+        nickDisplay.textContent = firstName;
+        if (isAdmin) nickDisplay.classList.add('admin-nick');
         if (photoUrl) document.getElementById('userAvatar').src = photoUrl;
 
         if (db) {
@@ -461,7 +508,8 @@
                 db.ref('users/' + currentUserTelegramId).on('value', snap => {
                     const data = snap.val();
                     if (data) {
-                        document.getElementById('userNickDisplay').textContent = data.nickname || data.firstName;
+                        nickDisplay.textContent = data.nickname || data.firstName;
+                        if (isAdmin) nickDisplay.classList.add('admin-nick');
                         if (data.photoUrl) document.getElementById('userAvatar').src = data.photoUrl;
                         fortBalance = data.fart || 0;
                         updateBalanceDisplay();
@@ -469,6 +517,17 @@
                 });
                 loadAllUsers();
             }).catch(err => console.warn(err));
+        }
+
+        if (isAdmin) {
+            document.getElementById('adminPanelBtn').style.display = 'block';
+            document.getElementById('openAdminPanel').addEventListener('click', () => {
+                renderAdminPanel();
+                document.getElementById('adminModal').classList.add('active');
+            });
+            document.getElementById('closeAdminModal').addEventListener('click', () => {
+                document.getElementById('adminModal').classList.remove('active');
+            });
         }
     }
 
@@ -478,6 +537,7 @@
         dailyBonusUsed = (localStorage.getItem('dailyBonusDate') === today);
     }
 
+    // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
     document.querySelectorAll('.mode-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const mode = opt.dataset.mode;
@@ -501,6 +561,7 @@
         });
     });
 
+    // ========== БАЛАНС ==========
     document.getElementById('balanceBlock').addEventListener('click', () => {
         tg.showPopup({
             title: 'Пополнение FORT',
@@ -515,6 +576,7 @@
         });
     });
 
+    // ========== СТАВКИ (ДОНАТ) ==========
     document.querySelectorAll('#betAmounts .bet-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
@@ -529,6 +591,7 @@
         document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
     });
 
+    // ========== ДОНАТ-СПИН ==========
     document.getElementById('donateWheelContainer').addEventListener('click', () => {
         if (isDonateSpinning) return;
         if (fortBalance < selectedBet && dailyBonusUsed) { tg.showAlert('Недостаточно FORT'); return; }
@@ -551,26 +614,24 @@
         donateAnimationId = requestAnimationFrame(donateSpinAnimation);
     });
 
+    // ========== ДОНАТ-КОЛЕСО: ОТРИСОВКА И АНИМАЦИЯ ==========
     function drawDonateWheel() {
         const canvas = document.getElementById('donateWheelCanvas');
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const cx = canvas.width / 2, cy = canvas.height / 2;
-        const radius = Math.min(cx, cy) - 12;  // увеличенные ячейки
+        const cx = canvas.width / 2, cy = canvas.height / 2, radius = Math.min(cx, cy) - 12;
         const totalWeight = donateSectors.reduce((s, sec) => s + sec.weight, 0);
         let start = donateAngle;
         donateSectors.forEach(sec => {
             const slice = 2 * Math.PI * sec.weight / totalWeight;
             ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, start + slice); ctx.closePath();
-            ctx.fillStyle = sec.color; ctx.fill();
-            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = sec.color; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
             ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice / 2);
             ctx.fillStyle = '#fff'; ctx.font = 'bold 14px "Segoe UI"'; ctx.textAlign = 'center';
-            ctx.fillText(sec.label, radius * 0.65, 6); // текст чуть ближе к центру
+            ctx.fillText(sec.label, radius * 0.65, 6);
             ctx.restore();
             start += slice;
         });
-        // палочки
         ctx.fillStyle = '#fff'; ctx.strokeStyle = '#90caf9';
         start = donateAngle;
         donateSectors.forEach(sec => {
@@ -580,7 +641,6 @@
             ctx.beginPath(); ctx.arc(px, py, 6, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
             start += slice;
         });
-        // кнопка SPIN
         ctx.beginPath(); ctx.arc(cx, cy, 25, 0, 2*Math.PI);
         ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3; ctx.stroke();
         ctx.fillStyle = '#0d47a1'; ctx.font = 'bold 16px "Segoe UI"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -626,6 +686,7 @@
         } else { donateAnimationId = requestAnimationFrame(donateSpinAnimation); }
     }
 
+    // ========== ПОВСЕДНЕВНОЕ КОЛЕСО ==========
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
     const wheelContainer = document.getElementById('wheelContainer');
@@ -637,8 +698,7 @@
 
     function drawWheel() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const cx = canvas.width / 2, cy = canvas.height / 2;
-        const r = Math.min(cx, cy) - 12;  // увеличенные ячейки
+        const cx = canvas.width / 2, cy = canvas.height / 2, r = Math.min(cx, cy) - 12;
         if (options.length < 2) {
             const slice = 2*Math.PI / 8;
             for (let i = 0; i < 8; i++) {
@@ -662,7 +722,7 @@
                 ctx.fillStyle = baseColors[i % 8]; ctx.fill(); ctx.strokeStyle = '#ffffff33'; ctx.lineWidth = 1; ctx.stroke();
                 ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice/2);
                 ctx.fillStyle = '#fff'; ctx.font = 'bold 16px "Segoe UI"'; ctx.textAlign = 'center';
-                ctx.fillText(opt.label || '?', r * 0.65, 6); // текст чуть ближе к центру
+                ctx.fillText(opt.label || '?', r * 0.65, 6);
                 ctx.restore();
                 start += slice;
             });
@@ -677,7 +737,6 @@
                 start += slice;
             });
         }
-        // кнопка SPIN без дрожания
         ctx.beginPath(); ctx.arc(cx, cy, 25, 0, 2*Math.PI);
         ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3; ctx.stroke();
         ctx.fillStyle = '#0d47a1'; ctx.font = 'bold 16px "Segoe UI"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -720,7 +779,7 @@
                 }
                 if (result === '?') result = options[options.length-1].label || 'Пусто';
             }
-            document.getElementById('resultTitle').textContent = '🎉 Поздравляем, Ваш результат:';
+            document.getElementById('resultTitle').textContent = 'Поздравляем, Ваш результат:';
             document.getElementById('resultText').textContent = result;
             document.getElementById('resultOverlay').classList.add('active');
             playWinSound();
@@ -745,6 +804,7 @@
         o.start(); o.stop(audioCtx.currentTime+0.05);
     }
 
+    // ========== ПАНЕЛЬ ОПЦИЙ ==========
     const optionsListDiv = document.getElementById('optionsList');
     document.getElementById('chanceSwitch').addEventListener('change', e => {
         useWeights = e.target.checked; if (!useWeights) options.forEach(o => o.weight = 1); renderOptions();
@@ -778,6 +838,7 @@
         if (options.length && confirm('Удалить все варианты?')) { options = []; renderOptions(); }
     });
 
+    // ========== МАССОВОЕ ДОБАВЛЕНИЕ ==========
     const massAddModal = document.getElementById('massAddModal');
     document.getElementById('massAddBtn').addEventListener('click', () => massAddModal.classList.add('active'));
     document.getElementById('closeMassAddModal').addEventListener('click', () => massAddModal.classList.remove('active'));
@@ -790,6 +851,7 @@
         massAddModal.classList.remove('active');
     });
 
+    // ========== ПРЕСЕТЫ ==========
     const presetsModal = document.getElementById('presetsModal');
     document.getElementById('presetsBtn').addEventListener('click', () => { renderPresetsList(); presetsModal.classList.add('active'); });
     document.getElementById('closePresetsModal').addEventListener('click', () => presetsModal.classList.remove('active'));
@@ -819,8 +881,10 @@
         renderPresetsList();
     });
 
+    // ========== РЕЗУЛЬТАТ ==========
     document.getElementById('closeResultBtn').addEventListener('click', () => document.getElementById('resultOverlay').classList.remove('active'));
 
+    // ========== ЗВУК ==========
     let audioCtx = null, muted = false, globalVolume = 0.5;
     function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     document.body.addEventListener('click', initAudio, { once: true });
@@ -835,6 +899,7 @@
         o.start(); o.stop(audioCtx.currentTime+0.2);
     }
 
+    // ========== ЛИДЕРБОРД ==========
     function loadAllUsers() {
         if (!db) return;
         db.ref('users').orderByChild('spins').limitToLast(50).on('value', snap => {
@@ -879,6 +944,7 @@
         });
     });
 
+    // ========== НАСТРОЙКИ ==========
     const settingsModal = document.getElementById('settingsModal');
     document.getElementById('openSettings').addEventListener('click', () => {
         settingsModal.classList.add('active');
@@ -892,25 +958,84 @@
         document.getElementById('muteCheckbox').checked = muted;
     });
     document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.remove('active'));
+
+    // Сброс своей статистики
+    document.getElementById('resetStatsBtn').addEventListener('click', async () => {
+        if (!currentUserTelegramId || !db) { alert('Недоступно'); return; }
+        const userRef = db.ref('users/' + currentUserTelegramId);
+        const snap = await userRef.once('value');
+        const data = snap.val() || {};
+        const now = Date.now();
+        const lastReset = data.lastReset || 0;
+        if (now - lastReset < 24 * 3600 * 1000) {
+            alert('Сброс возможен раз в 24 часа. Попробуйте позже.');
+            return;
+        }
+        if (!confirm('Сбросить вашу статистику (количество круток)?')) return;
+        await userRef.update({ spins: 0, lastReset: now });
+        alert('Статистика сброшена!');
+        loadAllUsers();
+    });
+
+    // Сохранение настроек
     document.getElementById('saveSettings').addEventListener('click', async () => {
         if (!currentUserTelegramId) { alert('Войдите через Telegram'); return; }
-        if (!db) { alert('Нет БД'); return; }
-        const nick = document.getElementById('nicknameInput').value.trim();
-        if (nick) {
-            const snap = await db.ref('users').orderByChild('nickname').equalTo(nick).once('value');
-            let ok = true; snap.forEach(c => { if (c.key !== currentUserTelegramId) ok = false; });
+        if (!db) { alert('База данных не подключена'); return; }
+        const newNick = document.getElementById('nicknameInput').value.trim();
+        if (newNick) {
+            const snap = await db.ref('users').orderByChild('nickname').equalTo(newNick).once('value');
+            let ok = true;
+            snap.forEach(c => { if (c.key !== currentUserTelegramId) ok = false; });
             if (!ok) { alert('Ник занят'); return; }
-            await db.ref('users/' + currentUserTelegramId).update({ nickname: nick });
-            document.getElementById('userNickDisplay').textContent = nick;
+            await db.ref('users/' + currentUserTelegramId).update({ nickname: newNick });
+            const nickDisplay = document.getElementById('userNickDisplay');
+            nickDisplay.textContent = newNick;
+            if (isAdmin) nickDisplay.classList.add('admin-nick');
         }
         globalVolume = parseInt(document.getElementById('volumeSlider').value) / 100;
         muted = document.getElementById('muteCheckbox').checked;
-        localStorage.setItem('volume', globalVolume*100);
-        localStorage.setItem('muted', muted?'1':'0');
+        localStorage.setItem('volume', globalVolume * 100);
+        localStorage.setItem('muted', muted ? '1' : '0');
         settingsModal.classList.remove('active');
     });
-    window.addEventListener('click', e => { if (e.target.classList.contains('modal')) e.target.classList.remove('active'); });
 
+    // ========== АДМИН-ПАНЕЛЬ ==========
+    function renderAdminPanel() {
+        if (!isAdmin) return;
+        const container = document.getElementById('adminUserList');
+        let totalSpins = 0;
+        container.innerHTML = '';
+        if (allUsersData.length === 0) {
+            container.innerHTML = '<div>Нет пользователей</div>';
+            document.getElementById('adminTotalUsers').textContent = '0';
+            document.getElementById('adminTotalSpins').textContent = '0';
+            return;
+        }
+        allUsersData.forEach(u => {
+            totalSpins += (u.spins || 0);
+            const row = document.createElement('div');
+            row.className = 'user-row';
+            row.innerHTML = `
+                <span>${u.nickname || u.firstName} (ID: ${u.telegramId})</span>
+                <span>🔄 ${u.spins}</span>
+                <span>💰 ${u.fart || 0} F</span>
+            `;
+            const resetBtn = document.createElement('button');
+            resetBtn.textContent = 'Сбросить';
+            resetBtn.addEventListener('click', async () => {
+                if (!confirm(`Сбросить статистику пользователю ${u.nickname || u.firstName}?`)) return;
+                await db.ref('users/' + u.telegramId).update({ spins: 0 });
+                alert('Статистика сброшена');
+                loadAllUsers();
+            });
+            row.appendChild(resetBtn);
+            container.appendChild(row);
+        });
+        document.getElementById('adminTotalUsers').textContent = allUsersData.length;
+        document.getElementById('adminTotalSpins').textContent = totalSpins;
+    }
+
+    // ========== ТЕМА ==========
     const themeToggle = document.getElementById('themeToggle');
     function setTheme(light) {
         document.body.classList.toggle('light-theme', light);
