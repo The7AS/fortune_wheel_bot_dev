@@ -201,13 +201,32 @@
         .tab-switch.friends .tab-background { transform: translateX(100%); }
         .leaderboard-list { display: flex; flex-direction: column; gap: 8px; }
         .top-player {
-            display: flex; align-items: center; gap: 12px; padding: 8px 10px;
+            display: flex; align-items: center; gap: 10px; padding: 8px 12px;
             background: var(--input-bg); border-radius: 14px;
+            transition: transform 0.2s;
         }
-        .position { width: 24px; text-align: center; font-weight: 700; color: var(--accent); }
-        .top-player img { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); }
-        .player-name { flex: 1; font-weight: 500; }
-        .player-spins { font-weight: 700; color: var(--accent); }
+        .top-player:hover { transform: scale(1.02); }
+        .position {
+            width: 24px; text-align: center; font-weight: 700; font-size: 0.9rem;
+            color: var(--muted-text);
+        }
+        .position.top-1 { color: #FFD700; }
+        .position.top-2 { color: #C0C0C0; }
+        .position.top-3 { color: #CD7F32; }
+        .top-player img { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
+        .player-name { flex: 1; font-weight: 500; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .player-spins {
+            display: flex; align-items: center; gap: 4px;
+            background: var(--accent); color: white;
+            padding: 3px 10px; border-radius: 20px;
+            font-weight: 600; font-size: 0.8rem; white-space: nowrap;
+        }
+        .player-spins::before {
+            content: '';
+            display: inline-block; width: 6px; height: 6px;
+            background: currentColor; border-radius: 50%;
+            opacity: 0.7; flex-shrink: 0;
+        }
 
         .result-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -312,15 +331,27 @@
             background: var(--accent); border: none; color: white;
             padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;
         }
+        .admin-panel .admin-header {
+            display: flex; gap: 8px; padding: 6px 10px; margin-bottom: 6px;
+            font-size: 0.75rem; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .admin-panel .admin-header span { flex: 1; min-width: 0; }
+        .admin-panel .admin-header .admin-actions { display: flex; gap: 6px; flex: 0 0 auto; }
         .admin-panel .user-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 10px; background: var(--input-bg); border-radius: 12px; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px; background: var(--input-bg); border-radius: 12px; margin-bottom: 6px;
         }
-        .admin-panel .user-row span { flex: 1; }
-        .admin-panel button {
-            padding: 4px 12px; border-radius: 20px; border: none;
-            background: var(--accent); color: white; font-size: 0.8rem; cursor: pointer;
+        .admin-panel .user-row .admin-name { flex: 0 0 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: 0.85rem; }
+        .admin-panel .user-row .admin-id { flex: 0 0 70px; font-size: 0.75rem; color: var(--muted-text); overflow: hidden; text-overflow: ellipsis; }
+        .admin-panel .user-row .admin-stat { flex: 0 0 60px; font-size: 0.8rem; text-align: center; }
+        .admin-panel .user-row .admin-actions { display: flex; gap: 4px; flex: 0 0 auto; }
+        .admin-panel .user-row .admin-actions button {
+            padding: 3px 8px; border-radius: 12px; border: none;
+            background: var(--accent); color: white; font-size: 0.7rem; cursor: pointer; transition: opacity 0.2s;
         }
+        .admin-panel .user-row .admin-actions button:hover { opacity: 0.8; }
+        .admin-panel .user-row .admin-actions .reset-spins { background: #e94560; }
+        .admin-panel .user-row .admin-actions .reset-balance { background: #f5c518; color: #1a1a2e; }
 
         .login-screen {
             display: none;
@@ -1019,7 +1050,7 @@
         db.ref('users').orderByChild('spins').limitToLast(50).on('value', snap => {
             allUsersData = [];
             if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
-            allUsersData.sort((a,b) => b.spins - a.spins);
+            allUsersData.sort((a,b) => (b.spins||0) - (a.spins||0));
             renderLeaderboard();
         });
     }
@@ -1039,7 +1070,22 @@
     }
     function createPlayer(u, pos) {
         const div = document.createElement('div'); div.className = 'top-player';
-        div.innerHTML = `<span class="position">${pos}</span><img src="${u.photoUrl || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"%3E%3Ccircle cx=\"16\" cy=\"16\" r=\"16\" fill=\"%23e94560\"/%3E%3C/svg%3E'}"><span class="player-name">${u.nickname || u.firstName}</span><span class="player-spins">🔄 ${u.spins||0}</span>`;
+        const posSpan = document.createElement('span');
+        posSpan.className = 'position' + (pos <= 3 ? ' top-' + pos : '');
+        posSpan.textContent = '#' + pos;
+        const img = document.createElement('img');
+        img.src = u.photoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Ccircle cx="16" cy="16" r="16" fill="%23e94560"/%3E%3C/svg%3E';
+        img.alt = 'avatar';
+        const name = document.createElement('span');
+        name.className = 'player-name';
+        name.textContent = u.nickname || u.firstName || '—';
+        const spins = document.createElement('span');
+        spins.className = 'player-spins';
+        spins.textContent = (u.spins||0) + ' spin' + ((u.spins||0) !== 1 ? 's' : '');
+        div.appendChild(posSpan);
+        div.appendChild(img);
+        div.appendChild(name);
+        div.appendChild(spins);
         return div;
     }
     window.requestContacts = () => {
@@ -1116,29 +1162,60 @@
         let totalSpins = 0;
         container.innerHTML = '';
         if (allUsersData.length === 0) {
-            container.innerHTML = '<div>Нет пользователей</div>';
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted-text);">Нет пользователей</div>';
             document.getElementById('adminTotalUsers').textContent = '0';
             document.getElementById('adminTotalSpins').textContent = '0';
             return;
         }
+        // Заголовок
+        const header = document.createElement('div');
+        header.className = 'admin-header';
+        header.innerHTML = '<span>Имя</span><span class="admin-id">ID</span><span class="admin-stat">Спинов</span><span class="admin-stat">Баланс</span><span class="admin-actions"></span>';
+        container.appendChild(header);
+        // Строки
         allUsersData.forEach(u => {
             totalSpins += (u.spins || 0);
             const row = document.createElement('div');
             row.className = 'user-row';
-            row.innerHTML = `
-                <span>${u.nickname || u.firstName} (ID: ${u.telegramId})</span>
-                <span>🔄 ${u.spins}</span>
-                <span>💰 ${u.fart || 0} F</span>
-            `;
-            const resetBtn = document.createElement('button');
-            resetBtn.textContent = 'Сбросить';
-            resetBtn.addEventListener('click', async () => {
-                if (!confirm(`Сбросить статистику пользователю ${u.nickname || u.firstName}?`)) return;
+            const name = document.createElement('span');
+            name.className = 'admin-name';
+            name.textContent = u.nickname || u.firstName || '—';
+            const id = document.createElement('span');
+            id.className = 'admin-id';
+            id.textContent = u.telegramId || '—';
+            const spinsStat = document.createElement('span');
+            spinsStat.className = 'admin-stat';
+            spinsStat.textContent = u.spins || 0;
+            const balStat = document.createElement('span');
+            balStat.className = 'admin-stat';
+            balStat.textContent = (u.fart || 0) + ' F';
+            const actions = document.createElement('div');
+            actions.className = 'admin-actions';
+            const resetSpins = document.createElement('button');
+            resetSpins.className = 'reset-spins';
+            resetSpins.textContent = 'Спины';
+            resetSpins.addEventListener('click', async () => {
+                if (!confirm(`Сбросить спины пользователю ${u.nickname || u.firstName}?`)) return;
                 await db.ref('users/' + u.telegramId).update({ spins: 0 });
-                tg.showAlert('Статистика сброшена');
+                tg.showAlert('Спины сброшены');
                 loadAllUsers();
             });
-            row.appendChild(resetBtn);
+            const resetBal = document.createElement('button');
+            resetBal.className = 'reset-balance';
+            resetBal.textContent = 'Баланс';
+            resetBal.addEventListener('click', async () => {
+                if (!confirm(`Сбросить баланс пользователю ${u.nickname || u.firstName}?`)) return;
+                await db.ref('users/' + u.telegramId).update({ fart: 0 });
+                tg.showAlert('Баланс сброшен');
+                loadAllUsers();
+            });
+            actions.appendChild(resetSpins);
+            actions.appendChild(resetBal);
+            row.appendChild(name);
+            row.appendChild(id);
+            row.appendChild(spinsStat);
+            row.appendChild(balStat);
+            row.appendChild(actions);
             container.appendChild(row);
         });
         document.getElementById('adminTotalUsers').textContent = allUsersData.length;
