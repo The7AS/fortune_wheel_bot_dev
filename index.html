@@ -334,8 +334,6 @@
         .login-screen h1 { font-size: 1.8rem; color: var(--accent); text-align: center; }
         .login-screen p { color: var(--muted-text); max-width: 300px; text-align: center; }
         #telegramLoginBtn { min-height: 60px; display: flex; justify-content: center; }
-        #telegramWidgetContainer { display: none; }
-        #telegramWidgetContainer.active { display: flex; justify-content: center; }
         @media (min-width: 500px) {
             .wheel-container { max-width: 450px; }
         }
@@ -346,15 +344,6 @@
     <h1>🎡 Колесо фортуны</h1>
     <p>Войдите через Telegram, чтобы продолжить</p>
     <div id="telegramLoginBtn"></div>
-</div>
-
-<div id="telegramWidgetContainer" style="display:none;">
-    <script async src="https://telegram.org/js/telegram-widget.js?22"
-        data-telegram-login="Fortunef3sTestBot"
-        data-size="large"
-        data-onauth="onTelegramAuth(user)"
-        data-request-access="write">
-    </script>
 </div>
 
 <div class="top-bar">
@@ -611,10 +600,18 @@
     if (initData && initData.user) {
         initUser(initData.user);
     } else {
-        // Браузерный режим — показываем статический Telegram Login Widget
+        // Браузерный режим — показываем Telegram Login Widget
         document.getElementById('loginScreen').classList.add('active');
         document.body.classList.add('login-active');
-        document.getElementById('telegramWidgetContainer').classList.add('active');
+
+        // Сначала добавляем скрипт в DOM с атрибутами, потом назначаем src
+        const s = document.createElement('script');
+        s.setAttribute('data-telegram-login', 'Fortunef3sTestBot');
+        s.setAttribute('data-size', 'large');
+        s.setAttribute('data-onauth', 'onTelegramAuth(user)');
+        s.setAttribute('data-request-access', 'write');
+        document.getElementById('telegramLoginBtn').appendChild(s);
+        s.src = 'https://telegram.org/js/telegram-widget.js?22';
     }
 
     window.onTelegramAuth = function(user) {
