@@ -598,22 +598,27 @@
     if (initData && initData.user) {
         initUser(initData.user);
     } else {
-        // Браузерный режим — показываем Telegram Login Widget
+        // Браузерный режим — показываем Telegram Login Widget через iframe
         document.getElementById('loginScreen').classList.add('active');
         document.body.classList.add('login-active');
-        // Загружаем виджет динамически, чтобы не мешал в Mini App
-        const s = document.createElement('script');
-        s.src = 'https://telegram.org/js/telegram-widget.js?22';
-        s.setAttribute('data-telegram-login', 'Fortunef3sTestBot');
-        s.setAttribute('data-size', 'large');
-        s.setAttribute('data-onauth', 'onTelegramAuth(user)');
-        s.setAttribute('data-request-access', 'write');
-        document.getElementById('telegramLoginBtn').appendChild(s);
-    }
+        const BOT_NAME = 'Fortunef3sTestBot';
+        const origin = encodeURIComponent(window.location.origin);
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&origin=${origin}`;
+        iframe.width = '186';
+        iframe.height = '60';
+        iframe.style.border = 'none';
+        iframe.style.overflow = 'hidden';
+        document.getElementById('telegramLoginBtn').appendChild(iframe);
 
-    window.onTelegramAuth = function(user) {
-        initUser(user);
-    };
+        window.addEventListener('message', function onAuth(e) {
+            if (e.origin !== 'https://oauth.telegram.org') return;
+            if (e.data && e.data.auth_type === 'telegram' && e.data.user) {
+                window.removeEventListener('message', onAuth);
+                initUser(e.data.user);
+            }
+        });
+    }
 
     function updateBalanceDisplay() {
         document.getElementById('fortBalance').textContent = fortBalance;
