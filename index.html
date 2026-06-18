@@ -60,7 +60,7 @@
             user-select: none; cursor: pointer;
         }
         .donate-mode .balance-block { display: flex; align-items: center; }
-        .right-group { display: flex; align-items: center; gap: 12px; }
+        .right-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
         #localTime { font-size: 0.9rem; background: var(--surface); padding: 4px 12px; border-radius: 20px; box-shadow: var(--shadow); }
         .theme-toggle { background: none; border: none; font-size: 1.8rem; cursor: pointer; transition: transform 0.4s ease; }
         .theme-toggle[data-theme="dark"]:hover { transform: rotate(12deg); }
@@ -71,10 +71,12 @@
         }
         .settings-btn:hover { transform: rotate(720deg); transition: transform 1.2s cubic-bezier(.2,.8,.4,1); }
         .user-badge {
-            display: none; align-items: center; gap: 8px;
-            background: var(--surface); padding: 6px 12px; border-radius: 30px; box-shadow: var(--shadow);
+            display: none; align-items: center; gap: 6px;
+            background: var(--surface); padding: 4px 10px; border-radius: 30px; box-shadow: var(--shadow);
+            max-width: 180px; overflow: hidden;
         }
-        .user-badge img { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--accent); }
+        .user-badge img { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
+        .user-badge span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .admin-nick { color: #ff4444 !important; }
         .main-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
         .mode-switch { display: flex; background: var(--input-bg); border-radius: 14px; padding: 6px; margin-bottom: 10px; }
@@ -602,6 +604,17 @@
         document.getElementById('loginScreen').classList.add('active');
         document.body.classList.add('login-active');
         const BOT_NAME = 'Fortunef3sTestBot';
+
+        // Регистрируем listener ДО создания iframe (чтобы не пропустить сообщение)
+        const LOGIN_ORIGIN = 'https://oauth.telegram.org';
+        window.addEventListener('message', function onAuth(e) {
+            if (!e.origin.startsWith(LOGIN_ORIGIN)) return;
+            if (e.data && e.data.auth_type === 'telegram' && e.data.user) {
+                window.removeEventListener('message', onAuth);
+                initUser(e.data.user);
+            }
+        });
+
         const origin = encodeURIComponent(window.location.origin);
         const iframe = document.createElement('iframe');
         iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&origin=${origin}`;
@@ -610,14 +623,6 @@
         iframe.style.border = 'none';
         iframe.style.overflow = 'hidden';
         document.getElementById('telegramLoginBtn').appendChild(iframe);
-
-        window.addEventListener('message', function onAuth(e) {
-            if (e.origin !== 'https://oauth.telegram.org') return;
-            if (e.data && e.data.auth_type === 'telegram' && e.data.user) {
-                window.removeEventListener('message', onAuth);
-                initUser(e.data.user);
-            }
-        });
     }
 
     function updateBalanceDisplay() {
