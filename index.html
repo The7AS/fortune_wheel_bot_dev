@@ -320,12 +320,30 @@
             background: var(--accent); color: white; font-size: 0.8rem; cursor: pointer;
         }
 
+        .login-screen {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            justify-content: center; align-items: center;
+            z-index: 500; flex-direction: column; gap: 24px; padding: 20px;
+        }
+        .login-screen.active { display: flex; }
+        body.login-active { overflow: hidden; }
+        .login-screen h1 { font-size: 1.8rem; color: var(--accent); text-align: center; }
+        .login-screen p { color: var(--muted-text); max-width: 300px; text-align: center; }
+        #telegramLoginBtn { min-height: 60px; }
         @media (min-width: 500px) {
             .wheel-container { max-width: 450px; }
         }
     </style>
 </head>
 <body>
+<div class="login-screen" id="loginScreen">
+    <h1>🎡 Колесо фортуны</h1>
+    <p>Войдите через Telegram, чтобы продолжить</p>
+    <div id="telegramLoginBtn"></div>
+</div>
+
 <div class="top-bar">
     <div class="slogan" id="slogan">✨ Удача ждёт тебя!</div>
     <div class="balance-block" id="balanceBlock">
@@ -527,15 +545,15 @@
 
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
-    const initData = tg.initDataUnsafe;
-    if (initData && initData.user) {
-        const user = initData.user;
+    function initUser(user) {
         currentUserTelegramId = user.id.toString();
         isAdmin = (currentUserTelegramId === ADMIN_ID);
         const firstName = user.first_name || 'Пользователь';
         const username = user.username || '';
         const photoUrl = user.photo_url || '';
 
+        document.getElementById('loginScreen').classList.remove('active');
+        document.body.classList.remove('login-active');
         document.getElementById('userBadge').style.display = 'flex';
         const nickDisplay = document.getElementById('userNickDisplay');
         nickDisplay.textContent = firstName;
@@ -575,6 +593,27 @@
             });
         }
     }
+
+    const initData = tg.initDataUnsafe;
+    if (initData && initData.user) {
+        initUser(initData.user);
+    } else {
+        // Браузерный режим — показываем Telegram Login Widget
+        document.getElementById('loginScreen').classList.add('active');
+        document.body.classList.add('login-active');
+        // Загружаем виджет динамически, чтобы не мешал в Mini App
+        const s = document.createElement('script');
+        s.src = 'https://telegram.org/js/telegram-widget.js?22';
+        s.setAttribute('data-telegram-login', 'Fortunef3sBot');
+        s.setAttribute('data-size', 'large');
+        s.setAttribute('data-onauth', 'onTelegramAuth(user)');
+        s.setAttribute('data-request-access', 'write');
+        document.getElementById('telegramLoginBtn').appendChild(s);
+    }
+
+    window.onTelegramAuth = function(user) {
+        initUser(user);
+    };
 
     function updateBalanceDisplay() {
         document.getElementById('fortBalance').textContent = fortBalance;
