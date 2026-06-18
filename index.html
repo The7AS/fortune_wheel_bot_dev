@@ -52,7 +52,6 @@
             gap: 10px; flex-wrap: wrap; transition: filter 0.3s;
         }
         .slogan { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
-        /* Блок баланса – по умолчанию скрыт, показывается только в донат-режиме */
         .balance-block {
             display: none;
             background: var(--surface); border: 2px solid var(--accent);
@@ -514,6 +513,7 @@
     let selectedBet = 10;
     let dailyBonusUsed = false;
 
+    // Реальные веса (вероятности) – не меняются
     const donateSectors = [
         { label: 'x2', weight: 12, color: '#FFD700' },
         { label: 'x0', weight: 38, color: '#C62828' },
@@ -523,6 +523,10 @@
         { label: 'x3', weight: 1, color: '#1565C0' },
         { label: 'Бесплатно', weight: 1, color: '#00838F' },
     ];
+    // Визуальные веса для красивых пропорций (минимум 5)
+    const visualWeights = donateSectors.map(s => Math.max(s.weight, 5));
+    const visualTotalWeight = visualWeights.reduce((a,b)=>a+b, 0);
+
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
     const initData = tg.initDataUnsafe;
@@ -593,13 +597,14 @@
             document.getElementById('optionsPanel').style.display = mode === 'daily' ? 'block' : 'none';
             if (mode === 'donate') {
                 document.body.classList.add('donate-mode');
-                drawDonateWheel();
-                if (!isDonateSpinning && !donateAnimationId) { donateAngle = 0; startDonateIdleSpin(); }
+                stopDonateAnimation();
+                donateAngle = 0;
+                drawDonateWheel(); // статично
             } else {
                 document.body.classList.remove('donate-mode');
                 stopDonateAnimation();
-                drawWheel();
-                if (options.length === 0 && !animationFrameId) idleSpin();
+                // запускаем холостое вращение стандартного колеса, если не активно
+                if (!isSpinning && !animationFrameId) startIdleSpin();
             }
         });
     });
@@ -663,22 +668,23 @@
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const cx = canvas.width / 2, cy = canvas.height / 2, radius = Math.min(cx, cy) - 12;
-        const totalWeight = donateSectors.reduce((s, sec) => s + sec.weight, 0);
         let start = donateAngle;
-        donateSectors.forEach(sec => {
-            const slice = 2 * Math.PI * sec.weight / totalWeight;
-            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, start + slice); ctx.closePath();
-            ctx.fillStyle = sec.color; ctx.fill(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        donateSectors.forEach((sec, i) => {
+            const slice = 2 * Math.PI * (visualWeights[i] / visualTotalWeight);
+            const end = start + slice;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, end); ctx.closePath();
+            ctx.fillStyle = sec.color; ctx.fill();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
             ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice / 2);
             ctx.fillStyle = '#fff'; ctx.font = 'bold 14px "Segoe UI"'; ctx.textAlign = 'center';
             ctx.fillText(sec.label, radius * 0.65, 6);
             ctx.restore();
-            start += slice;
+            start = end;
         });
         ctx.fillStyle = '#fff'; ctx.strokeStyle = '#90caf9';
         start = donateAngle;
-        donateSectors.forEach(sec => {
-            const slice = 2 * Math.PI * sec.weight / totalWeight;
+        donateSectors.forEach((sec, i) => {
+            const slice = 2 * Math.PI * (visualWeights[i] / visualTotalWeight);
             const angle = start + slice / 2;
             const px = cx + (radius + 4) * Math.cos(angle), py = cy + (radius + 4) * Math.sin(angle);
             ctx.beginPath(); ctx.arc(px, py, 6, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
@@ -688,10 +694,6 @@
         ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3; ctx.stroke();
         ctx.fillStyle = '#0d47a1'; ctx.font = 'bold 16px "Segoe UI"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('SPIN', cx, cy);
-    }
-    function startDonateIdleSpin() {
-        function anim() { if (isDonateSpinning) return; donateAngle += 0.02; drawDonateWheel(); donateAnimationId = requestAnimationFrame(anim); }
-        donateAnimationId = requestAnimationFrame(anim);
     }
     function stopDonateAnimation() { if (donateAnimationId) { cancelAnimationFrame(donateAnimationId); donateAnimationId = null; } }
     function donateSpinAnimation() {
@@ -706,10 +708,12 @@
         }
         if (Math.abs(donateVelocity) < 0.01) {
             isDonateSpinning = false; document.body.classList.remove('spinning');
-            const totalWeight = donateSectors.reduce((s, sec) => s + sec.weight, 0);
-            let raw = ((donateAngle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI), acc = 0, sector = donateSectors[0];
+            // Определение результата по реальным весам
+            const totalRealWeight = donateSectors.reduce((s, sec) => s + sec.weight, 0);
+            let raw = ((donateAngle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+            let acc = 0, sector = donateSectors[0];
             for (const sec of donateSectors) {
-                const slice = 2*Math.PI * sec.weight / totalWeight;
+                const slice = 2*Math.PI * sec.weight / totalRealWeight;
                 if (raw >= acc && raw < acc + slice) { sector = sec; break; }
                 acc += slice;
             }
@@ -725,8 +729,10 @@
             document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
             document.getElementById('resultText').textContent = sector.label + ' (' + (win>=0?'+':'') + win + ' F)';
             document.getElementById('resultOverlay').classList.add('active');
-            startDonateIdleSpin();
-        } else { donateAnimationId = requestAnimationFrame(donateSpinAnimation); }
+            // не запускаем холостое вращение, останавливаемся
+        } else {
+            donateAnimationId = requestAnimationFrame(donateSpinAnimation);
+        }
     }
 
     // Повседневное колесо
@@ -786,9 +792,17 @@
         ctx.fillText('SPIN', cx, cy);
     }
 
-    function idleSpin() {
-        if (options.length === 0) { currentAngle += 0.02; drawWheel(); animationFrameId = requestAnimationFrame(idleSpin); }
+    function startIdleSpin() {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        function idle() {
+            if (isSpinning) return;
+            currentAngle += 0.01; // медленно
+            drawWheel();
+            animationFrameId = requestAnimationFrame(idle);
+        }
+        animationFrameId = requestAnimationFrame(idle);
     }
+
     function stopAnimation() { if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } }
 
     wheelContainer.addEventListener('click', () => {
@@ -796,9 +810,9 @@
         const filled = options.filter(o => o.label.trim() !== '');
         if (filled.length < 2) { tg.showAlert('Добавьте минимум два варианта и заполните их.'); return; }
         isSpinning = true; document.body.classList.add('spinning');
+        stopAnimation();
         spinVelocity = fastSpin ? 0.3 + Math.random()*0.4 : 0.5 + Math.random()*0.8;
         spinDecay = fastSpin ? 0.9 : 0.98;
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
         animationFrameId = requestAnimationFrame(spinAnimation);
     });
 
@@ -833,7 +847,11 @@
                 db.ref('users/' + currentUserTelegramId).update({ spins: firebase.database.ServerValue.increment(1) })
                     .catch(err => console.error('Spin error:', err));
             }
-        } else { animationFrameId = requestAnimationFrame(spinAnimation); }
+            // после остановки снова запускаем холостое вращение
+            startIdleSpin();
+        } else {
+            animationFrameId = requestAnimationFrame(spinAnimation);
+        }
     }
 
     function bumpPin() { pinElement.classList.add('bump'); setTimeout(() => pinElement.classList.remove('bump'), 100); }
@@ -869,11 +887,11 @@
                 wrap.appendChild(w); wrap.appendChild(s); row.appendChild(wrap);
             }
             const del = document.createElement('button'); del.className = 'delete-option'; del.innerHTML = '×';
-            del.addEventListener('click', () => { options.splice(idx, 1); renderOptions(); drawWheel(); if (options.length === 0) { stopAnimation(); idleSpin(); } });
+            del.addEventListener('click', () => { options.splice(idx, 1); renderOptions(); drawWheel(); if (options.length === 0) { stopAnimation(); startIdleSpin(); } });
             row.appendChild(del);
             optionsListDiv.appendChild(row);
         });
-        if (options.length === 0) { stopAnimation(); idleSpin(); }
+        // Не останавливаем холостое вращение при рендере, оно само продолжит крутиться, если запущено
         drawWheel();
     }
     document.getElementById('addOptionBtn').addEventListener('click', () => { options.push({ label: '', weight: 1 }); renderOptions(); });
@@ -1089,7 +1107,8 @@
     document.getElementById('slogan').textContent = slogans[Math.floor(Math.random() * slogans.length)];
 
     window.addEventListener('load', () => {
-        options = []; renderOptions(); drawWheel();
+        options = []; renderOptions();
+        startIdleSpin(); // запускаем холостое вращение сразу
         if (localStorage.getItem('volume')) globalVolume = parseInt(localStorage.getItem('volume')) / 100;
         if (localStorage.getItem('muted') === '1') muted = true;
     });
