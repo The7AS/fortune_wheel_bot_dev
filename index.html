@@ -346,6 +346,9 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .settings-btn-action:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(233,69,96,0.4); }
+        .db-status { font-size: 0.75rem; color: var(--muted-text); text-align: center; margin-top: 10px; }
+        .db-status .ok { color: #4caf50; }
+        .db-status .err { color: #e94560; }
 
         .presets-list { list-style: none; margin: 10px 0; max-height: 200px; overflow-y: auto; }
         .presets-list li {
@@ -378,6 +381,15 @@
         .admin-panel .user-row .admin-actions button:hover { opacity: 0.8; }
         .admin-panel .user-row .admin-actions .reset-spins { background: #e94560; }
         .admin-panel .user-row .admin-actions .reset-balance { background: #f5c518; color: #1a1a2e; }
+        .admin-panel .user-row .add-balance-row { display: flex; gap: 4px; margin-left: auto; }
+        .admin-panel .user-row .add-balance-row input {
+            width: 60px; padding: 2px 6px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--input-bg); color: var(--text); font-size: 0.75rem; text-align: center;
+        }
+        .admin-panel .user-row .add-balance-row button {
+            padding: 2px 8px; border-radius: 10px; border: none;
+            background: #4caf50; color: white; font-size: 0.7rem; cursor: pointer; white-space: nowrap;
+        }
 
         .login-screen {
             display: none;
@@ -540,6 +552,7 @@
         <div id="adminPanelBtn" style="margin-top:12px; display:none;">
             <button id="openAdminPanel">Панель администратора</button>
         </div>
+        <div class="db-status" id="dbStatus">База данных: <span id="dbStatusText">...проверка</span></div>
         <div class="settings-actions">
             <button id="saveSettings" class="settings-btn-action">Сохранить</button>
             <button id="closeSettings" class="settings-btn-action">Закрыть</button>
@@ -577,7 +590,17 @@
         firebase.storage = undefined;
         db = firebase.database();
         console.log('Firebase ready');
-    } catch (e) { console.warn('No Firebase:', e); }
+        // проверка подключения к Firebase
+        db.ref('.info/serverTimeOffset').once('value').then(() => {
+            document.getElementById('dbStatusText').innerHTML = '<span class="ok">подключена</span>';
+        }).catch(() => {
+            document.getElementById('dbStatusText').innerHTML = '<span class="err">недоступна</span>';
+        });
+    } catch (e) {
+        console.warn('No Firebase:', e);
+        const st = document.getElementById('dbStatusText');
+        if (st) st.innerHTML = '<span class="err">не подключена</span>';
+    }
 
     let currentUserTelegramId = null;
     let isAdmin = false;
@@ -622,9 +645,14 @@
             const userRef = db.ref('users/' + currentUserTelegramId);
             userRef.once('value').then(snap => {
                 if (!snap.exists()) {
-                    userRef.set({ telegramId: currentUserTelegramId, firstName, username, photoUrl, nickname: firstName, spins: 0, fart: 0 });
+                    userRef.set({ telegramId: currentUserTelegramId, firstName, username, photoUrl, nickname: firstName, spins: 0, fart: 0 })
+                        .catch(err => {
+                            console.error('User create failed:', err);
+                            tg.showAlert('Ошибка: не удалось сохранить пользователя. Firebase недоступен.');
+                        });
                 } else {
-                    userRef.update({ firstName, username, photoUrl });
+                    userRef.update({ firstName, username, photoUrl })
+                        .catch(err => console.error('User update failed:', err));
                 }
                 db.ref('users/' + currentUserTelegramId).on('value', snap => {
                     const data = snap.val();
@@ -637,7 +665,10 @@
                     }
                 });
                 loadAllUsers();
-            }).catch(err => console.warn(err));
+            }).catch(err => {
+                console.error('Firebase read error:', err);
+                tg.showAlert('Ошибка чтения базы данных. Проверьте подключение.');
+            });
         }
 
         if (isAdmin) {
@@ -956,8 +987,12 @@
                 tg.openTelegramLink(`https://t.me/share/url?url=&text=${encodeURIComponent('🎉 Мне выпало: ' + result + '\nПопробуй и ты: @Fortunef3sBot')}`);
             };
             if (db && options.length >= 2 && currentUserTelegramId) {
-                db.ref('users/' + currentUserTelegramId + '/spins').transaction(current => (current || 0) + 1)
-                    .catch(err => console.error('Spin error:', err));
+                db.ref('users/' + currentUserTelegramId + '/spins').transaction(current => (current || 0) + 1, (err, committed) => {
+                    if (err) {
+                        console.error('Spin save failed:', err);
+                        tg.showAlert('Ошибка: статистика не сохранена. Firebase недоступен.');
+                    }
+                });
             }
             // после остановки снова запускаем холостое вращение
             startIdleSpin();
@@ -1273,8 +1308,35 @@
                 tg.showAlert('Баланс сброшен');
                 loadAllUsers();
             });
+            // Добавление баланса
+            const addRow = document.createElement('div');
+            addRow.className = 'add-balance-row';
+            const addInput = document.createElement('input');
+            addInput.type = 'number';
+            addInput.min = '1';
+            addInput.placeholder = 'F';
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '+';
+            addBtn.addEventListener('click', async () => {
+                const val = parseInt(addInput.value);
+                if (isNaN(val) || val < 1) { tg.showAlert('Введите сумму от 1 F'); return; }
+                if (!confirm(`Добавить ${val} F пользователю ${u.nickname || u.firstName}?`)) return;
+                try {
+                    const snap = await db.ref('users/' + u.telegramId + '/fart').once('value');
+                    const current = snap.val() || 0;
+                    await db.ref('users/' + u.telegramId).update({ fart: current + val });
+                    tg.showAlert(`Баланс пополнен на ${val} F`);
+                    addInput.value = '';
+                    loadAllUsers();
+                } catch (e) {
+                    tg.showAlert('Ошибка: ' + e.message);
+                }
+            });
+            addRow.appendChild(addInput);
+            addRow.appendChild(addBtn);
             actions.appendChild(resetSpins);
             actions.appendChild(resetBal);
+            actions.appendChild(addRow);
             row.appendChild(name);
             row.appendChild(id);
             row.appendChild(spinsStat);
