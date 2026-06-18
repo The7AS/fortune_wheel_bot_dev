@@ -513,7 +513,7 @@
     let selectedBet = 10;
     let dailyBonusUsed = false;
 
-    // Реальные веса (вероятности) – не меняются
+    // Реальные веса (вероятности) – используются и для отрисовки, и для расчёта
     const donateSectors = [
         { label: 'x2', weight: 12, color: '#FFD700' },
         { label: 'x0', weight: 38, color: '#C62828' },
@@ -523,9 +523,7 @@
         { label: 'x3', weight: 1, color: '#1565C0' },
         { label: 'Бесплатно', weight: 1, color: '#00838F' },
     ];
-    // Визуальные веса для красивых пропорций (минимум 5)
-    const visualWeights = donateSectors.map(s => Math.max(s.weight, 5));
-    const visualTotalWeight = visualWeights.reduce((a,b)=>a+b, 0);
+    const totalDonateWeight = donateSectors.reduce((a,b)=>a+b.weight, 0);
 
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
@@ -597,13 +595,17 @@
             document.getElementById('optionsPanel').style.display = mode === 'daily' ? 'block' : 'none';
             if (mode === 'donate') {
                 document.body.classList.add('donate-mode');
+                stopAnimation();
+                isSpinning = false;
                 stopDonateAnimation();
+                stopDonateIdle();
                 donateAngle = 0;
-                drawDonateWheel(); // статично
+                drawDonateWheel();
+                startDonateIdle();
             } else {
                 document.body.classList.remove('donate-mode');
                 stopDonateAnimation();
-                // запускаем холостое вращение стандартного колеса, если не активно
+                stopDonateIdle();
                 if (!isSpinning && !animationFrameId) startIdleSpin();
             }
         });
@@ -632,24 +634,30 @@
             selectedBet = parseInt(btn.dataset.bet);
         });
     });
+    const MAX_BET = 10000;
     document.getElementById('setCustomBetBtn').addEventListener('click', () => {
         const val = parseInt(document.getElementById('customBetInput').value);
         if (isNaN(val) || val < 1) { tg.showAlert('Введите сумму от 1 F'); return; }
+        if (val > MAX_BET) { tg.showAlert('Максимальная ставка: ' + MAX_BET + ' F'); return; }
         selectedBet = val;
         document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
     });
 
     // Донат-спин
+    let actualDonateBet = 10;
     document.getElementById('donateWheelContainer').addEventListener('click', () => {
         if (isDonateSpinning) return;
-        if (fortBalance < selectedBet && dailyBonusUsed) { tg.showAlert('Недостаточно FORT'); return; }
         const today = new Date().toDateString();
         if (localStorage.getItem('dailyBonusDate') !== today) dailyBonusUsed = false;
         if (!dailyBonusUsed && fortBalance < selectedBet) {
+            // Бесплатный спин с фиксированной ставкой 10 F (не меняем selectedBet)
+            actualDonateBet = 10;
             dailyBonusUsed = true;
             localStorage.setItem('dailyBonusDate', today);
         } else {
-            fortBalance -= selectedBet;
+            if (fortBalance < selectedBet) { tg.showAlert('Недостаточно FORT'); return; }
+            actualDonateBet = selectedBet;
+            fortBalance -= actualDonateBet;
         }
         updateBalanceDisplay();
         if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
@@ -670,21 +678,21 @@
         const cx = canvas.width / 2, cy = canvas.height / 2, radius = Math.min(cx, cy) - 12;
         let start = donateAngle;
         donateSectors.forEach((sec, i) => {
-            const slice = 2 * Math.PI * (visualWeights[i] / visualTotalWeight);
+            const slice = 2 * Math.PI * sec.weight / totalDonateWeight;
             const end = start + slice;
             ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, end); ctx.closePath();
             ctx.fillStyle = sec.color; ctx.fill();
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
             ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice / 2);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 14px "Segoe UI"'; ctx.textAlign = 'center';
-            ctx.fillText(sec.label, radius * 0.65, 6);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 13px "Segoe UI"'; ctx.textAlign = 'center';
+            ctx.fillText(sec.label, radius * 0.65, 5);
             ctx.restore();
             start = end;
         });
         ctx.fillStyle = '#fff'; ctx.strokeStyle = '#90caf9';
         start = donateAngle;
         donateSectors.forEach((sec, i) => {
-            const slice = 2 * Math.PI * (visualWeights[i] / visualTotalWeight);
+            const slice = 2 * Math.PI * sec.weight / totalDonateWeight;
             const angle = start + slice / 2;
             const px = cx + (radius + 4) * Math.cos(angle), py = cy + (radius + 4) * Math.sin(angle);
             ctx.beginPath(); ctx.arc(px, py, 6, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
@@ -696,40 +704,46 @@
         ctx.fillText('SPIN', cx, cy);
     }
     function stopDonateAnimation() { if (donateAnimationId) { cancelAnimationFrame(donateAnimationId); donateAnimationId = null; } }
+
+    function getDonateSectorIndex(angle) {
+        const raw = ((angle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        let acc = 0;
+        for (let i = 0; i < donateSectors.length; i++) {
+            const slice = 2*Math.PI * donateSectors[i].weight / totalDonateWeight;
+            if (raw >= acc && raw < acc + slice) return i;
+            acc += slice;
+        }
+        return donateSectors.length - 1;
+    }
+
     function donateSpinAnimation() {
         if (!isDonateSpinning) return;
         donateVelocity *= donateDecay; donateAngle += donateVelocity; drawDonateWheel();
-        const degPerSegment = 360 / donateSectors.length;
-        const curDeg = donateAngle * (180 / Math.PI), prevDeg = (donateAngle - donateVelocity) * (180 / Math.PI);
-        if (Math.floor(curDeg / degPerSegment) !== Math.floor(prevDeg / degPerSegment)) {
+        const prevIdx = getDonateSectorIndex(donateAngle - donateVelocity);
+        const curIdx = getDonateSectorIndex(donateAngle);
+        if (curIdx !== prevIdx) {
             document.getElementById('donatePin').classList.add('bump');
             setTimeout(() => document.getElementById('donatePin').classList.remove('bump'), 100);
             playTickSound();
         }
         if (Math.abs(donateVelocity) < 0.01) {
             isDonateSpinning = false; document.body.classList.remove('spinning');
-            // Определение результата по реальным весам
-            const totalRealWeight = donateSectors.reduce((s, sec) => s + sec.weight, 0);
-            let raw = ((donateAngle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-            let acc = 0, sector = donateSectors[0];
-            for (const sec of donateSectors) {
-                const slice = 2*Math.PI * sec.weight / totalRealWeight;
-                if (raw >= acc && raw < acc + slice) { sector = sec; break; }
-                acc += slice;
-            }
+            const sectorIdx = getDonateSectorIndex(donateAngle);
+            const sector = donateSectors[sectorIdx];
+            const bet = actualDonateBet;
             let win = 0;
-            if (sector.label === 'x2') win = selectedBet * 2;
-            else if (sector.label === 'x3') win = selectedBet * 3;
-            else if (sector.label === 'x1') win = selectedBet;
-            else if (sector.label === 'x0.5') win = Math.floor(selectedBet / 2);
-            else if (sector.label === 'Бесплатно') win = selectedBet;
-            else if (sector.label === 'Джекпот') win = selectedBet * 5;
+            if (sector.label === 'x2') win = bet * 2;
+            else if (sector.label === 'x3') win = bet * 3;
+            else if (sector.label === 'x1') win = bet;
+            else if (sector.label === 'x0.5') win = Math.floor(bet / 2);
+            else if (sector.label === 'Бесплатно') win = bet;
+            else if (sector.label === 'Джекпот') win = bet * 5;
             fortBalance += win; updateBalanceDisplay();
             if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
             document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
             document.getElementById('resultText').textContent = sector.label + ' (' + (win>=0?'+':'') + win + ' F)';
             document.getElementById('resultOverlay').classList.add('active');
-            // не запускаем холостое вращение, останавливаемся
+            startDonateIdle();
         } else {
             donateAnimationId = requestAnimationFrame(donateSpinAnimation);
         }
@@ -1017,31 +1031,31 @@
     document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.remove('active'));
 
     document.getElementById('resetStatsBtn').addEventListener('click', async () => {
-        if (!currentUserTelegramId || !db) { alert('Недоступно'); return; }
+        if (!currentUserTelegramId || !db) { tg.showAlert('Недоступно'); return; }
         const userRef = db.ref('users/' + currentUserTelegramId);
         const snap = await userRef.once('value');
         const data = snap.val() || {};
         const now = Date.now();
         const lastReset = data.lastReset || 0;
         if (now - lastReset < 24 * 3600 * 1000) {
-            alert('Сброс возможен раз в 24 часа. Попробуйте позже.');
+            tg.showAlert('Сброс возможен раз в 24 часа. Попробуйте позже.');
             return;
         }
         if (!confirm('Сбросить вашу статистику (количество круток)?')) return;
         await userRef.update({ spins: 0, lastReset: now });
-        alert('Статистика сброшена!');
+        tg.showAlert('Статистика сброшена!');
         loadAllUsers();
     });
 
     document.getElementById('saveSettings').addEventListener('click', async () => {
-        if (!currentUserTelegramId) { alert('Войдите через Telegram'); return; }
-        if (!db) { alert('База данных не подключена'); return; }
+        if (!currentUserTelegramId) { tg.showAlert('Войдите через Telegram'); return; }
+        if (!db) { tg.showAlert('База данных не подключена'); return; }
         const newNick = document.getElementById('nicknameInput').value.trim();
         if (newNick) {
             const snap = await db.ref('users').orderByChild('nickname').equalTo(newNick).once('value');
             let ok = true;
             snap.forEach(c => { if (c.key !== currentUserTelegramId) ok = false; });
-            if (!ok) { alert('Ник занят'); return; }
+            if (!ok) { tg.showAlert('Ник занят'); return; }
             await db.ref('users/' + currentUserTelegramId).update({ nickname: newNick });
             const nickDisplay = document.getElementById('userNickDisplay');
             nickDisplay.textContent = newNick;
@@ -1079,7 +1093,7 @@
             resetBtn.addEventListener('click', async () => {
                 if (!confirm(`Сбросить статистику пользователю ${u.nickname || u.firstName}?`)) return;
                 await db.ref('users/' + u.telegramId).update({ spins: 0 });
-                alert('Статистика сброшена');
+                tg.showAlert('Статистика сброшена');
                 loadAllUsers();
             });
             row.appendChild(resetBtn);
@@ -1106,9 +1120,26 @@
     const slogans = ["Крути судьбу смелее!","Твой выбор — твоя удача!","Вращай и побеждай!","Сегодня твой день!","Фортуна улыбается смелым!","Поверни колесо к успеху!","Шанс на миллион!","Реши, что важнее!","Пусть удача крутится с тобой!","Колесо решит всё!","Удача ждёт тебя!"];
     document.getElementById('slogan').textContent = slogans[Math.floor(Math.random() * slogans.length)];
 
+    let donateIdleAnimationId = null;
+    function startDonateIdle() {
+        if (donateIdleAnimationId) cancelAnimationFrame(donateIdleAnimationId);
+        function idle() {
+            if (isDonateSpinning) return;
+            donateAngle += 0.008;
+            drawDonateWheel();
+            donateIdleAnimationId = requestAnimationFrame(idle);
+        }
+        donateIdleAnimationId = requestAnimationFrame(idle);
+    }
+    function stopDonateIdle() {
+        if (donateIdleAnimationId) { cancelAnimationFrame(donateIdleAnimationId); donateIdleAnimationId = null; }
+    }
+
     window.addEventListener('load', () => {
+        const today = new Date().toDateString();
+        dailyBonusUsed = (localStorage.getItem('dailyBonusDate') === today);
         options = []; renderOptions();
-        startIdleSpin(); // запускаем холостое вращение сразу
+        startIdleSpin();
         if (localStorage.getItem('volume')) globalVolume = parseInt(localStorage.getItem('volume')) / 100;
         if (localStorage.getItem('muted') === '1') muted = true;
     });
