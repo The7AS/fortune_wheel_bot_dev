@@ -605,27 +605,25 @@
         document.body.classList.add('login-active');
         const BOT_NAME = 'Fortunef3sTestBot';
 
-        // Используем redirect_url вместо postMessage — надёжнее
-        const redirectUrl = encodeURIComponent(window.location.href);
+        // Регистрируем listener ДО создания iframe
+        window.addEventListener('message', function onAuth(e) {
+            console.log('Telegram auth message from:', e.origin);
+            if (!e.origin.startsWith('https://oauth.telegram.org')) return;
+            if (e.data && e.data.auth_type === 'telegram' && e.data.user) {
+                console.log('Telegram auth success:', e.data.user);
+                window.removeEventListener('message', onAuth);
+                initUser(e.data.user);
+            }
+        });
+
+        const origin = encodeURIComponent(window.location.origin);
         const iframe = document.createElement('iframe');
-        iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&redirect_url=${redirectUrl}`;
+        iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&origin=${origin}`;
         iframe.width = '186';
         iframe.height = '60';
         iframe.style.border = 'none';
         iframe.style.overflow = 'hidden';
         document.getElementById('telegramLoginBtn').appendChild(iframe);
-    }
-
-    // Обработка редиректа после авторизации
-    const hash = window.location.hash;
-    if (hash.startsWith('#tgAuthResult=')) {
-        try {
-            const data = JSON.parse(decodeURIComponent(hash.slice('#tgAuthResult='.length)));
-            if (data && data.user) {
-                initUser(data.user);
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        } catch (e) { console.warn('Auth parse error:', e); }
     }
 
     function updateBalanceDisplay() {
