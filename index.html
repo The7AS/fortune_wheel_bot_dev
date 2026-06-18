@@ -575,6 +575,7 @@
     const ADMIN_ID = '452456163';
     const tg = window.Telegram.WebApp;
     tg.ready();
+    function showAlert(msg) { try { window.Telegram.WebApp.showAlert(msg); } catch(e) { alert(msg); } }
 
     let db = null;
     try {
@@ -648,7 +649,7 @@
                     userRef.set({ telegramId: currentUserTelegramId, firstName, username, photoUrl, nickname: firstName, spins: 0, fart: 0 })
                         .catch(err => {
                             console.error('User create failed:', err);
-                            tg.showAlert('Ошибка: не удалось сохранить пользователя. Firebase недоступен.');
+                            showAlert('Ошибка: не удалось сохранить пользователя. Firebase недоступен.');
                         });
                 } else {
                     userRef.update({ firstName, username, photoUrl })
@@ -667,7 +668,7 @@
                 loadAllUsers();
             }).catch(err => {
                 console.error('Firebase read error:', err);
-                tg.showAlert('Ошибка чтения базы данных. Проверьте подключение.');
+                showAlert('Ошибка чтения базы данных. Проверьте подключение.');
             });
         }
 
@@ -766,8 +767,8 @@
     const MAX_BET = 10000;
     document.getElementById('setCustomBetBtn').addEventListener('click', () => {
         const val = parseInt(document.getElementById('customBetInput').value);
-        if (isNaN(val) || val < 1) { tg.showAlert('Введите сумму от 1 F'); return; }
-        if (val > MAX_BET) { tg.showAlert('Максимальная ставка: ' + MAX_BET + ' F'); return; }
+        if (isNaN(val) || val < 1) { showAlert('Введите сумму от 1 F'); return; }
+        if (val > MAX_BET) { showAlert('Максимальная ставка: ' + MAX_BET + ' F'); return; }
         selectedBet = val;
         document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
     });
@@ -784,7 +785,7 @@
             dailyBonusUsed = true;
             localStorage.setItem('dailyBonusDate', today);
         } else {
-            if (fortBalance < selectedBet) { tg.showAlert('Недостаточно FORT'); return; }
+            if (fortBalance < selectedBet) { showAlert('Недостаточно FORT'); return; }
             actualDonateBet = selectedBet;
             fortBalance -= actualDonateBet;
         }
@@ -951,7 +952,7 @@
     wheelContainer.addEventListener('click', () => {
         if (currentMode !== 'daily' || isSpinning) return;
         const filled = options.filter(o => o.label.trim() !== '');
-        if (filled.length < 2) { tg.showAlert('Добавьте минимум два варианта и заполните их.'); return; }
+        if (filled.length < 2) { showAlert('Добавьте минимум два варианта и заполните их.'); return; }
         isSpinning = true; document.body.classList.add('spinning');
         stopAnimation();
         spinVelocity = fastSpin ? 0.3 + Math.random()*0.4 : 0.5 + Math.random()*0.8;
@@ -990,7 +991,7 @@
                 db.ref('users/' + currentUserTelegramId + '/spins').transaction(current => (current || 0) + 1, (err, committed) => {
                     if (err) {
                         console.error('Spin save failed:', err);
-                        tg.showAlert('Ошибка: статистика не сохранена. Firebase недоступен.');
+                        showAlert('Ошибка: статистика не сохранена. Firebase недоступен.');
                     }
                 });
             }
@@ -1222,31 +1223,31 @@
     });
 
     document.getElementById('resetStatsBtn').addEventListener('click', async () => {
-        if (!currentUserTelegramId || !db) { tg.showAlert('Недоступно'); return; }
+        if (!currentUserTelegramId || !db) { showAlert('Недоступно'); return; }
         const userRef = db.ref('users/' + currentUserTelegramId);
         const snap = await userRef.once('value');
         const data = snap.val() || {};
         const now = Date.now();
         const lastReset = data.lastReset || 0;
         if (now - lastReset < 24 * 3600 * 1000) {
-            tg.showAlert('Сброс возможен раз в 24 часа. Попробуйте позже.');
+            showAlert('Сброс возможен раз в 24 часа. Попробуйте позже.');
             return;
         }
         if (!confirm('Сбросить вашу статистику (количество круток)?')) return;
         await userRef.update({ spins: 0, lastReset: now });
-        tg.showAlert('Статистика сброшена!');
+        showAlert('Статистика сброшена!');
         loadAllUsers();
     });
 
     document.getElementById('saveSettings').addEventListener('click', async () => {
-        if (!currentUserTelegramId) { tg.showAlert('Войдите через Telegram'); return; }
-        if (!db) { tg.showAlert('База данных не подключена'); return; }
+        if (!currentUserTelegramId) { showAlert('Войдите через Telegram'); return; }
+        if (!db) { showAlert('База данных не подключена'); return; }
         const newNick = document.getElementById('nicknameInput').value.trim();
         if (newNick) {
             const snap = await db.ref('users').orderByChild('nickname').equalTo(newNick).once('value');
             let ok = true;
             snap.forEach(c => { if (c.key !== currentUserTelegramId) ok = false; });
-            if (!ok) { tg.showAlert('Ник занят'); return; }
+            if (!ok) { showAlert('Ник занят'); return; }
             await db.ref('users/' + currentUserTelegramId).update({ nickname: newNick });
             const nickDisplay = document.getElementById('userNickDisplay');
             nickDisplay.textContent = newNick;
@@ -1296,7 +1297,7 @@
             resetSpins.addEventListener('click', async () => {
                 if (!confirm(`Сбросить спины пользователю ${u.nickname || u.firstName}?`)) return;
                 await db.ref('users/' + u.telegramId).update({ spins: 0 });
-                tg.showAlert('Спины сброшены');
+                showAlert('Спины сброшены');
                 loadAllUsers();
             });
             const resetBal = document.createElement('button');
@@ -1305,7 +1306,7 @@
             resetBal.addEventListener('click', async () => {
                 if (!confirm(`Сбросить баланс пользователю ${u.nickname || u.firstName}?`)) return;
                 await db.ref('users/' + u.telegramId).update({ fart: 0 });
-                tg.showAlert('Баланс сброшен');
+                showAlert('Баланс сброшен');
                 loadAllUsers();
             });
             // Добавление баланса
@@ -1319,17 +1320,17 @@
             addBtn.textContent = '+';
             addBtn.addEventListener('click', async () => {
                 const val = parseInt(addInput.value);
-                if (isNaN(val) || val < 1) { tg.showAlert('Введите сумму от 1 F'); return; }
+                if (isNaN(val) || val < 1) { showAlert('Введите сумму от 1 F'); return; }
                 if (!confirm(`Добавить ${val} F пользователю ${u.nickname || u.firstName}?`)) return;
                 try {
                     const snap = await db.ref('users/' + u.telegramId + '/fart').once('value');
                     const current = snap.val() || 0;
                     await db.ref('users/' + u.telegramId).update({ fart: current + val });
-                    tg.showAlert(`Баланс пополнен на ${val} F`);
+                    showAlert(`Баланс пополнен на ${val} F`);
                     addInput.value = '';
                     loadAllUsers();
                 } catch (e) {
-                    tg.showAlert('Ошибка: ' + e.message);
+                    showAlert('Ошибка: ' + e.message);
                 }
             });
             addRow.appendChild(addInput);
