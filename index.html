@@ -207,13 +207,34 @@
         }
         .top-player:hover { transform: scale(1.02); }
         .position {
-            width: 24px; text-align: center; font-weight: 700; font-size: 0.9rem;
-            color: var(--muted-text);
+            width: 32px; text-align: center; font-weight: 700; font-size: 0.9rem;
+            color: var(--muted-text); flex-shrink: 0;
         }
-        .position.top-1 { color: #FFD700; }
-        .position.top-2 { color: #C0C0C0; }
-        .position.top-3 { color: #CD7F32; }
+        .position.top-1, .position.top-2, .position.top-3 {
+            width: 32px; font-size: 0;
+        }
+        .top-player.top-1 {
+            background: linear-gradient(135deg, #2a1f00, #3d2d00);
+            box-shadow: 0 0 15px rgba(255,215,0,0.3), inset 0 0 20px rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        .top-player.top-2 {
+            background: linear-gradient(135deg, #1a1a1e, #2a2a30);
+            box-shadow: 0 0 12px rgba(192,192,192,0.2), inset 0 0 20px rgba(192,192,192,0.05);
+            border: 1px solid rgba(192,192,192,0.25);
+        }
+        .top-player.top-3 {
+            background: linear-gradient(135deg, #1f1508, #2f1f0e);
+            box-shadow: 0 0 12px rgba(205,127,50,0.2), inset 0 0 20px rgba(205,127,50,0.05);
+            border: 1px solid rgba(205,127,50,0.25);
+        }
+        .top-player.top-1 .player-name { color: #FFD700; }
+        .top-player.top-2 .player-name { color: #E0E0E0; }
+        .top-player.top-3 .player-name { color: #D4A05A; }
         .top-player img { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
+        .top-player.top-1 img { border-color: #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+        .top-player.top-2 img { border-color: #C0C0C0; box-shadow: 0 0 8px rgba(192,192,192,0.3); }
+        .top-player.top-3 img { border-color: #CD7F32; box-shadow: 0 0 8px rgba(205,127,50,0.3); }
         .player-name { flex: 1; font-weight: 500; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .player-spins {
             display: flex; align-items: center; gap: 4px;
@@ -559,7 +580,7 @@
         <div id="adminPanelBtn" style="margin-top:12px; display:none;">
             <button id="openAdminPanel">Панель администратора</button>
         </div>
-        <div class="db-status" id="dbStatus">База данных: <span id="dbStatusText">...проверка</span></div>
+        <div class="db-status" id="dbStatus" style="display:none">База данных: <span id="dbStatusText">...проверка</span></div>
         <div class="settings-actions">
             <button id="saveSettings" class="settings-btn-action">Сохранить</button>
             <button id="closeSettings" class="settings-btn-action">Закрыть</button>
@@ -567,6 +588,20 @@
     </div>
 </div>
 <div id="toast"></div>
+<div class="modal" id="welcomeModal">
+    <div class="modal-content" style="text-align:center;padding:30px 24px;">
+        <div style="font-size:48px;margin-bottom:10px;">🎉</div>
+        <h2 style="margin:0 0 8px;font-size:1.3rem;">Добро пожаловать!</h2>
+        <p style="margin:0 0 16px;color:var(--muted-text);line-height:1.5;">
+            Ты получил <strong style="color:var(--accent);font-size:1.2rem;">100 Fort</strong> в подарок 🎁
+        </p>
+        <p style="margin:0 0 20px;color:var(--muted-text);font-size:0.9rem;line-height:1.4;">
+            Попробуй донат-колесо — удвой, утрой или сорви Джекпот!<br>
+            <span style="opacity:0.7;">Удача любит смелых ✨</span>
+        </p>
+        <button id="welcomeOkBtn" style="background:var(--accent);color:#fff;border:none;padding:12px 40px;border-radius:30px;font-size:1rem;font-weight:600;cursor:pointer;">Крутить!</button>
+    </div>
+</div>
 <div class="modal" id="adminModal">
     <div class="modal-content admin-panel">
         <h2>Админ-панель</h2>
@@ -658,7 +693,12 @@
             const userRef = db.ref('users/' + currentUserTelegramId);
             userRef.once('value').then(snap => {
                 if (!snap.exists()) {
-                    userRef.set({ telegramId: currentUserTelegramId, firstName, username, photoUrl, nickname: firstName, spins: 0, fart: 0 })
+                    userRef.set({ telegramId: currentUserTelegramId, firstName, username, photoUrl, nickname: firstName, spins: 0, spins_daily: 0, spins_donate: 0, fart: 100 })
+                        .then(() => {
+                            fortBalance = 100;
+                            updateBalanceDisplay();
+                            document.getElementById('welcomeModal').classList.add('active');
+                        })
                         .catch(err => {
                             console.error('User create failed:', err);
                             showAlert('Ошибка: не удалось сохранить пользователя. Firebase недоступен.');
@@ -686,6 +726,7 @@
 
         if (isAdmin) {
             document.getElementById('adminPanelBtn').style.display = 'block';
+            document.getElementById('dbStatus').style.display = 'block';
             document.getElementById('openAdminPanel').addEventListener('click', () => {
                 renderAdminPanel();
                 document.getElementById('adminModal').classList.add('active');
@@ -694,6 +735,11 @@
                 document.getElementById('adminModal').classList.remove('active');
             });
         }
+        document.getElementById('welcomeOkBtn').addEventListener('click', () => {
+            document.getElementById('welcomeModal').classList.remove('active');
+            // переключиться на донат-режим
+            document.querySelector('.mode-option[data-mode="donate"]').click();
+        });
     }
 
     const initData = tg.initDataUnsafe;
@@ -750,6 +796,7 @@
                 stopDonateIdle();
                 if (!isSpinning && !animationFrameId) startIdleSpin();
             }
+            loadAllUsers();
         });
     });
 
@@ -786,14 +833,16 @@
     });
 
     // Донат-спин
-    let actualDonateBet = 10;
+    let actualDonateBet = 10, isFreeSpin = false;
     document.getElementById('donateWheelContainer').addEventListener('click', () => {
         if (isDonateSpinning) return;
+        isFreeSpin = false;
         const today = new Date().toDateString();
         if (localStorage.getItem('dailyBonusDate') !== today) dailyBonusUsed = false;
         if (!dailyBonusUsed && fortBalance < selectedBet) {
             // Бесплатный спин с фиксированной ставкой 10 F (не меняем selectedBet)
             actualDonateBet = 10;
+            isFreeSpin = true;
             dailyBonusUsed = true;
             localStorage.setItem('dailyBonusDate', today);
         } else {
@@ -826,8 +875,14 @@
             ctx.fillStyle = sec.color; ctx.fill();
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
             ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice / 2);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 13px "Segoe UI"'; ctx.textAlign = 'center';
-            ctx.fillText(sec.label, radius * 0.65, 5);
+            const fontSize = sec.weight >= 10 ? 15 : sec.weight >= 5 ? 13 : 11;
+            ctx.font = 'bold ' + fontSize + 'px "Segoe UI"';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#fff';
+            // тень для читаемости
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
+            const label = sec.label === 'x1' ? 'x1' : sec.label === 'x0.5' ? 'x½' : sec.label;
+            ctx.fillText(label, radius * 0.62, 0);
             ctx.restore();
             start = end;
         });
@@ -874,16 +929,17 @@
             const sector = donateSectors[sectorIdx];
             const bet = actualDonateBet;
             let win = 0;
-            if (sector.label === 'x2') win = bet * 2;
-            else if (sector.label === 'x3') win = bet * 3;
-            else if (sector.label === 'x1') win = bet;
-            else if (sector.label === 'x0.5') win = Math.floor(bet / 2);
-            else if (sector.label === 'Бесплатно') win = bet;
-            else if (sector.label === 'Джекпот') win = bet * 5;
+            const multMap = { 'x2': 2, 'x3': 3, 'x1': 1, 'x0.5': 0.5, 'Бесплатно': 1, 'Джекпот': 5, 'x0': 0 };
+            win = Math.floor(bet * (multMap[sector.label] || 0));
             fortBalance += win; updateBalanceDisplay();
-            if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
+            if (db && currentUserTelegramId) {
+                db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
+                db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
+                db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
+            }
             document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
-            document.getElementById('resultText').textContent = sector.label + ' (' + (win>=0?'+':'') + win + ' F)';
+            const net = sector.label === 'x0' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
+            document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
             document.getElementById('resultOverlay').classList.add('active');
             startDonateIdle();
         } else {
@@ -1000,7 +1056,8 @@
                 tg.openTelegramLink(`https://t.me/share/url?url=&text=${encodeURIComponent('🎉 Мне выпало: ' + result + '\nПопробуй и ты: @Fortunef3sBot')}`);
             };
             if (db && options.length >= 2 && currentUserTelegramId) {
-                db.ref('users/' + currentUserTelegramId + '/spins').transaction(current => (current || 0) + 1, (err, committed) => {
+                db.ref('users/' + currentUserTelegramId + '/spins_daily').transaction(v => (v || 0) + 1);
+                db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1, (err, committed) => {
                     if (err) {
                         console.error('Spin save failed:', err);
                         showAlert('Ошибка: статистика не сохранена. Firebase недоступен.');
@@ -1120,10 +1177,13 @@
 
     function loadAllUsers() {
         if (!db) return;
-        db.ref('users').orderByChild('spins').limitToLast(50).on('value', snap => {
+        const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
+        if (window._usersRef) { window._usersRef.off('value', window._usersCb); }
+        window._usersRef = db.ref('users');
+        window._usersCb = window._usersRef.orderByChild(sortField).limitToLast(50).on('value', snap => {
             allUsersData = [];
             if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
-            allUsersData.sort((a,b) => (b.spins||0) - (a.spins||0));
+            allUsersData.sort((a,b) => ((b[sortField]||0)) - (a[sortField]||0));
             renderLeaderboard();
         });
     }
@@ -1142,10 +1202,11 @@
         }
     }
     function createPlayer(u, pos) {
-        const div = document.createElement('div'); div.className = 'top-player';
+        const div = document.createElement('div'); div.className = 'top-player' + (pos <= 3 ? ' top-' + pos : '');
         const posSpan = document.createElement('span');
         posSpan.className = 'position' + (pos <= 3 ? ' top-' + pos : '');
-        posSpan.textContent = '#' + pos;
+        const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '#' + pos;
+        posSpan.textContent = medal;
         const img = document.createElement('img');
         img.src = u.photoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Ccircle cx="16" cy="16" r="16" fill="%23e94560"/%3E%3C/svg%3E';
         img.alt = 'avatar';
@@ -1154,7 +1215,9 @@
         name.textContent = u.nickname || u.firstName || '—';
         const spins = document.createElement('span');
         spins.className = 'player-spins';
-        spins.textContent = (u.spins||0) + ' спинов';
+        const spinCount = currentMode === 'daily' ? (u.spins_daily||0) : (u.spins_donate||0);
+        const label = currentMode === 'daily' ? 'спинов' : 'спинов💎';
+        spins.textContent = spinCount + ' ' + label;
         div.appendChild(posSpan);
         div.appendChild(img);
         div.appendChild(name);
@@ -1246,7 +1309,8 @@
             return;
         }
         if (!confirm('Сбросить вашу статистику (количество круток)?')) return;
-        await userRef.update({ spins: 0, lastReset: now });
+        await userRef.update({ spins: 0, spins_daily: 0, spins_donate: 0, fart: 100, lastReset: now });
+        fortBalance = 100; updateBalanceDisplay();
         showAlert('Статистика сброшена!');
         loadAllUsers();
     });
@@ -1282,7 +1346,7 @@
         // Заголовок
         const header = document.createElement('div');
         header.className = 'admin-header';
-        header.innerHTML = '<span>Имя</span><span class="admin-id">ID</span><span class="admin-stat">Спинов</span><span class="admin-stat">Баланс</span><span class="admin-actions"></span>';
+        header.innerHTML = '<span>Имя</span><span class="admin-id">ID</span><span class="admin-stat">Daily</span><span class="admin-stat">💎</span><span class="admin-stat">Всего</span><span class="admin-stat">Баланс</span><span class="admin-actions"></span>';
         container.appendChild(header);
         // Строки
         allUsersData.forEach(u => {
@@ -1295,6 +1359,12 @@
             const id = document.createElement('span');
             id.className = 'admin-id';
             id.textContent = u.telegramId || '—';
+            const dailyStat = document.createElement('span');
+            dailyStat.className = 'admin-stat';
+            dailyStat.textContent = u.spins_daily || 0;
+            const donateStat = document.createElement('span');
+            donateStat.className = 'admin-stat';
+            donateStat.textContent = u.spins_donate || 0;
             const spinsStat = document.createElement('span');
             spinsStat.className = 'admin-stat';
             spinsStat.textContent = u.spins || 0;
@@ -1353,6 +1423,8 @@
             actions.appendChild(addRow);
             row.appendChild(name);
             row.appendChild(id);
+            row.appendChild(dailyStat);
+            row.appendChild(donateStat);
             row.appendChild(spinsStat);
             row.appendChild(balStat);
             row.appendChild(actions);
