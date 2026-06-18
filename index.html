@@ -44,14 +44,14 @@
             color: var(--text);
             display: flex; flex-direction: column; align-items: center;
             min-height: 100vh; padding: 16px;
-            transition: background 0.3s, color 0.3s; gap: 20px;
+            transition: background 0.3s, color 0.3s; gap: 20px; overflow-x: hidden;
         }
         .top-bar {
             width: 100%; max-width: 500px;
             display: flex; justify-content: space-between; align-items: center;
             gap: 8px; transition: filter 0.3s; overflow: hidden;
         }
-        .slogan { font-size: 0.95rem; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        .slogan { font-size: 0.85rem; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; flex-shrink: 1; }
         .balance-block {
             display: none;
             background: var(--surface); border: 2px solid var(--accent);
@@ -72,11 +72,11 @@
         .settings-btn:hover { transform: rotate(720deg); transition: transform 1.2s cubic-bezier(.2,.8,.4,1); }
         .user-badge {
             display: none; align-items: center; gap: 4px;
-            background: var(--surface); padding: 3px 8px; border-radius: 30px; box-shadow: var(--shadow);
-            max-width: 140px; overflow: hidden; flex-shrink: 1; min-width: 0;
+            background: var(--surface); padding: 2px 6px; border-radius: 30px; box-shadow: var(--shadow);
+            max-width: 110px; overflow: hidden; flex-shrink: 1; min-width: 0;
         }
-        .user-badge img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
-        .user-badge span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; }
+        .user-badge img { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--accent); flex-shrink: 0; }
+        .user-badge span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; }
         .admin-nick { color: #ff4444 !important; }
         .main-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
         .mode-switch { display: flex; background: var(--input-bg); border-radius: 14px; padding: 6px; margin-bottom: 10px; }
@@ -333,7 +333,9 @@
         body.login-active { overflow: hidden; }
         .login-screen h1 { font-size: 1.8rem; color: var(--accent); text-align: center; }
         .login-screen p { color: var(--muted-text); max-width: 300px; text-align: center; }
-        #telegramLoginBtn { min-height: 60px; }
+        #telegramLoginBtn { min-height: 60px; display: flex; justify-content: center; }
+        #telegramWidgetContainer { display: none; }
+        #telegramWidgetContainer.active { display: flex; justify-content: center; }
         @media (min-width: 500px) {
             .wheel-container { max-width: 450px; }
         }
@@ -344,6 +346,15 @@
     <h1>🎡 Колесо фортуны</h1>
     <p>Войдите через Telegram, чтобы продолжить</p>
     <div id="telegramLoginBtn"></div>
+</div>
+
+<div id="telegramWidgetContainer" style="display:none;">
+    <script async src="https://telegram.org/js/telegram-widget.js?22"
+        data-telegram-login="Fortunef3sTestBot"
+        data-size="large"
+        data-onauth="onTelegramAuth(user)"
+        data-request-access="write">
+    </script>
 </div>
 
 <div class="top-bar">
@@ -600,31 +611,15 @@
     if (initData && initData.user) {
         initUser(initData.user);
     } else {
-        // Браузерный режим — показываем Telegram Login Widget через iframe
+        // Браузерный режим — показываем статический Telegram Login Widget
         document.getElementById('loginScreen').classList.add('active');
         document.body.classList.add('login-active');
-        const BOT_NAME = 'Fortunef3sTestBot';
-
-        // Регистрируем listener ДО создания iframe
-        window.addEventListener('message', function onAuth(e) {
-            console.log('Telegram auth message from:', e.origin);
-            if (!e.origin.startsWith('https://oauth.telegram.org')) return;
-            if (e.data && e.data.auth_type === 'telegram' && e.data.user) {
-                console.log('Telegram auth success:', e.data.user);
-                window.removeEventListener('message', onAuth);
-                initUser(e.data.user);
-            }
-        });
-
-        const origin = encodeURIComponent(window.location.origin);
-        const iframe = document.createElement('iframe');
-        iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&origin=${origin}`;
-        iframe.width = '186';
-        iframe.height = '60';
-        iframe.style.border = 'none';
-        iframe.style.overflow = 'hidden';
-        document.getElementById('telegramLoginBtn').appendChild(iframe);
+        document.getElementById('telegramWidgetContainer').classList.add('active');
     }
+
+    window.onTelegramAuth = function(user) {
+        initUser(user);
+    };
 
     function updateBalanceDisplay() {
         document.getElementById('fortBalance').textContent = fortBalance;
