@@ -282,25 +282,51 @@
         .volume-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin: 16px 0;
+            gap: 14px;
+            margin: 20px 0;
         }
-        .volume-row label { font-weight: 500; font-size: 0.95rem; white-space: nowrap; }
+        .volume-row label { font-weight: 500; font-size: 0.9rem; white-space: nowrap; color: var(--muted-text); }
         .volume-row input[type="range"] {
             -webkit-appearance: none;
+            appearance: none;
             width: 100%;
-            height: 4px;
-            background: var(--input-bg);
-            border-radius: 2px;
+            height: 6px;
+            background: linear-gradient(90deg, var(--accent) var(--vol-pct, 50%), var(--input-bg) var(--vol-pct, 50%));
+            border-radius: 3px;
             outline: none;
+            transition: background 0.1s;
         }
         .volume-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
+            appearance: none;
+            width: 20px;
+            height: 20px;
             background: var(--accent);
-            border-radius: 4px;
+            border-radius: 50%;
             cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .volume-row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); box-shadow: 0 3px 12px rgba(0,0,0,0.4); }
+        .volume-row input[type="range"]::-moz-range-thumb {
+            width: 20px; height: 20px;
+            background: var(--accent); border: none;
+            border-radius: 50%; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .volume-row #volumeValue { font-weight: 600; font-size: 0.85rem; min-width: 36px; text-align: right; color: var(--accent); }
+        .mute-btn {
+            background: none; border: none; font-size: 2rem; cursor: pointer;
+            transition: transform 0.2s; line-height: 1; padding: 0;
+        }
+        .mute-btn:hover { transform: scale(1.2); }
+        .mute-btn.muted { animation: muteShake 0.3s ease; }
+        @keyframes muteShake {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.3) rotate(-10deg); }
+            50% { transform: scale(1.3) rotate(10deg); }
+            75% { transform: scale(1.3) rotate(-5deg); }
+            100% { transform: scale(1); }
         }
         .settings-actions {
             display: flex;
@@ -504,11 +530,10 @@
         <label>Никнейм</label>
         <input type="text" id="nicknameInput" class="modern-input" placeholder="сменить">
         <div class="volume-row">
-            <label>Громкость</label>
+            <button class="mute-btn" id="muteBtn">🔊</button>
             <input type="range" id="volumeSlider" min="0" max="100" value="50">
             <span id="volumeValue">50%</span>
         </div>
-        <label><input type="checkbox" id="muteCheckbox"> Без звука</label>
         <div style="margin-top:12px;">
             <button id="resetStatsBtn">Сбросить статистику</button>
         </div>
@@ -931,7 +956,7 @@
                 tg.openTelegramLink(`https://t.me/share/url?url=&text=${encodeURIComponent('🎉 Мне выпало: ' + result + '\nПопробуй и ты: @Fortunef3sBot')}`);
             };
             if (db && options.length >= 2 && currentUserTelegramId) {
-                db.ref('users/' + currentUserTelegramId).update({ spins: firebase.database.ServerValue.increment(1) })
+                db.ref('users/' + currentUserTelegramId + '/spins').transaction(current => (current || 0) + 1)
                     .catch(err => console.error('Spin error:', err));
             }
             // после остановки снова запускаем холостое вращение
@@ -1081,7 +1106,7 @@
         name.textContent = u.nickname || u.firstName || '—';
         const spins = document.createElement('span');
         spins.className = 'player-spins';
-        spins.textContent = (u.spins||0) + ' spin' + ((u.spins||0) !== 1 ? 's' : '');
+        spins.textContent = (u.spins||0) + ' спинов';
         div.appendChild(posSpan);
         div.appendChild(img);
         div.appendChild(name);
@@ -1112,11 +1137,54 @@
                 if (s.val()) document.getElementById('nicknameInput').value = s.val().nickname || '';
             });
         }
-        document.getElementById('volumeSlider').value = globalVolume * 100;
-        document.getElementById('volumeValue').textContent = Math.round(globalVolume*100) + '%';
-        document.getElementById('muteCheckbox').checked = muted;
+        const vol = Math.round(globalVolume * 100);
+        document.getElementById('volumeSlider').value = vol;
+        document.getElementById('volumeSlider').style.setProperty('--vol-pct', vol + '%');
+        document.getElementById('volumeValue').textContent = vol + '%';
+        document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
+        document.getElementById('muteBtn').classList.toggle('muted', muted);
     });
     document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.remove('active'));
+
+    // Volume slider — real-time update + auto-save
+    document.getElementById('volumeSlider').addEventListener('input', function() {
+        const val = parseInt(this.value);
+        globalVolume = val / 100;
+        this.style.setProperty('--vol-pct', val + '%');
+        document.getElementById('volumeValue').textContent = val + '%';
+        localStorage.setItem('volume', val);
+        if (val === 0) {
+            muted = true;
+            document.getElementById('muteBtn').textContent = '🔇';
+            document.getElementById('muteBtn').classList.add('muted');
+        } else if (muted) {
+            muted = false;
+            document.getElementById('muteBtn').textContent = '🔊';
+            document.getElementById('muteBtn').classList.remove('muted');
+        }
+        localStorage.setItem('muted', muted ? '1' : '0');
+    });
+
+    // Mute button — animated toggle + auto-save
+    document.getElementById('muteBtn').addEventListener('click', function() {
+        muted = !muted;
+        this.textContent = muted ? '🔇' : '🔊';
+        this.classList.toggle('muted', muted);
+        if (muted) {
+            this.style.animation = 'none';
+            void this.offsetWidth;
+            this.style.animation = 'muteShake 0.3s ease';
+        }
+        localStorage.setItem('muted', muted ? '1' : '0');
+        if (!muted && globalVolume === 0) {
+            globalVolume = 0.5;
+            const vol = 50;
+            document.getElementById('volumeSlider').value = vol;
+            document.getElementById('volumeSlider').style.setProperty('--vol-pct', vol + '%');
+            document.getElementById('volumeValue').textContent = vol + '%';
+            localStorage.setItem('volume', vol);
+        }
+    });
 
     document.getElementById('resetStatsBtn').addEventListener('click', async () => {
         if (!currentUserTelegramId || !db) { tg.showAlert('Недоступно'); return; }
@@ -1149,10 +1217,6 @@
             nickDisplay.textContent = newNick;
             if (isAdmin) nickDisplay.classList.add('admin-nick');
         }
-        globalVolume = parseInt(document.getElementById('volumeSlider').value) / 100;
-        muted = document.getElementById('muteCheckbox').checked;
-        localStorage.setItem('volume', globalVolume * 100);
-        localStorage.setItem('muted', muted ? '1' : '0');
         settingsModal.classList.remove('active');
     });
 
