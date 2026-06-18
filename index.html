@@ -49,9 +49,9 @@
         .top-bar {
             width: 100%; max-width: 500px;
             display: flex; justify-content: space-between; align-items: center;
-            gap: 10px; flex-wrap: wrap; transition: filter 0.3s;
+            gap: 8px; transition: filter 0.3s; overflow: hidden;
         }
-        .slogan { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+        .slogan { font-size: 0.95rem; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
         .balance-block {
             display: none;
             background: var(--surface); border: 2px solid var(--accent);
@@ -60,7 +60,7 @@
             user-select: none; cursor: pointer;
         }
         .donate-mode .balance-block { display: flex; align-items: center; }
-        .right-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .right-group { display: flex; align-items: center; gap: 6px; flex-shrink: 1; min-width: 0; }
         #localTime { font-size: 0.9rem; background: var(--surface); padding: 4px 12px; border-radius: 20px; box-shadow: var(--shadow); }
         .theme-toggle { background: none; border: none; font-size: 1.8rem; cursor: pointer; transition: transform 0.4s ease; }
         .theme-toggle[data-theme="dark"]:hover { transform: rotate(12deg); }
@@ -71,12 +71,12 @@
         }
         .settings-btn:hover { transform: rotate(720deg); transition: transform 1.2s cubic-bezier(.2,.8,.4,1); }
         .user-badge {
-            display: none; align-items: center; gap: 6px;
-            background: var(--surface); padding: 4px 10px; border-radius: 30px; box-shadow: var(--shadow);
-            max-width: 180px; overflow: hidden;
+            display: none; align-items: center; gap: 4px;
+            background: var(--surface); padding: 3px 8px; border-radius: 30px; box-shadow: var(--shadow);
+            max-width: 140px; overflow: hidden; flex-shrink: 1; min-width: 0;
         }
-        .user-badge img { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
-        .user-badge span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-badge img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
+        .user-badge span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; }
         .admin-nick { color: #ff4444 !important; }
         .main-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
         .mode-switch { display: flex; background: var(--input-bg); border-radius: 14px; padding: 6px; margin-bottom: 10px; }
@@ -605,24 +605,27 @@
         document.body.classList.add('login-active');
         const BOT_NAME = 'Fortunef3sTestBot';
 
-        // Регистрируем listener ДО создания iframe (чтобы не пропустить сообщение)
-        const LOGIN_ORIGIN = 'https://oauth.telegram.org';
-        window.addEventListener('message', function onAuth(e) {
-            if (!e.origin.startsWith(LOGIN_ORIGIN)) return;
-            if (e.data && e.data.auth_type === 'telegram' && e.data.user) {
-                window.removeEventListener('message', onAuth);
-                initUser(e.data.user);
-            }
-        });
-
-        const origin = encodeURIComponent(window.location.origin);
+        // Используем redirect_url вместо postMessage — надёжнее
+        const redirectUrl = encodeURIComponent(window.location.href);
         const iframe = document.createElement('iframe');
-        iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&origin=${origin}`;
+        iframe.src = `https://oauth.telegram.org/embed/${BOT_NAME}?size=large&userpic=true&redirect_url=${redirectUrl}`;
         iframe.width = '186';
         iframe.height = '60';
         iframe.style.border = 'none';
         iframe.style.overflow = 'hidden';
         document.getElementById('telegramLoginBtn').appendChild(iframe);
+    }
+
+    // Обработка редиректа после авторизации
+    const hash = window.location.hash;
+    if (hash.startsWith('#tgAuthResult=')) {
+        try {
+            const data = JSON.parse(decodeURIComponent(hash.slice('#tgAuthResult='.length)));
+            if (data && data.user) {
+                initUser(data.user);
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        } catch (e) { console.warn('Auth parse error:', e); }
     }
 
     function updateBalanceDisplay() {
