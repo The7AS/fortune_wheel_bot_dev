@@ -47,7 +47,7 @@
         .bet-btn, .custom-bet-btn { padding: 10px 20px; border-radius: 30px; border: 2px solid var(--accent); background: transparent; color: var(--text); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 1rem; }
         .bet-btn.selected, .custom-bet-btn.selected { background: var(--accent); color: white; }
         .custom-bet-wrapper { display: flex; align-items: center; gap: 6px; }
-        .custom-bet-input { width: 80px; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--accent); background: var(--input-bg); color: var(--text); font-weight: 600; text-align: center; }
+        .custom-bet-input { width: 110px; min-width: 110px; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--accent); background: var(--input-bg); color: var(--text); font-weight: 600; text-align: center; overflow: hidden; text-overflow: ellipsis; }
         .options-panel { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); transition: filter 0.3s; }
         .chance-toggle, .fast-spin-toggle { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
         .toggle-label { font-size: 1rem; font-weight: 500; }
@@ -57,6 +57,10 @@
         .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.3s; }
         input:checked + .slider { background-color: #4caf50; }
         input:checked + .slider:before { transform: translateX(26px); }
+        .lang-switch { display: flex; background: var(--input-bg); border-radius: 20px; padding: 2px; }
+        .lang-btn { flex: 1; padding: 6px 0; border: none; background: transparent; color: var(--muted-text); font-weight: 600; font-size: 0.8rem; border-radius: 18px; cursor: pointer; transition: all 0.2s; }
+        .lang-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(233,69,96,0.4); }
+        .lang-btn:hover:not(.active) { color: var(--text); }
         .option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
         .option-row input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 10px; border: none; background: var(--input-bg); color: var(--text); font-size: 0.95rem; }
         .weight-wrapper { position: relative; width: 60px; }
@@ -323,8 +327,11 @@
         <div class="modal-content">
             <h2>Настройки</h2>
             <div class="chance-toggle" id="langRow">
-                <span class="toggle-label">Язык / Language</span>
-                <label class="switch"><input type="checkbox" id="langToggle"><span class="slider"></span></label>
+                <span class="toggle-label">Язык</span>
+                <div class="lang-switch" id="langSwitch">
+                    <button class="lang-btn" data-lang="ru">RU</button>
+                    <button class="lang-btn" data-lang="en">ENG</button>
+                </div>
             </div>
             <label>Никнейм</label>
             <input type="text" id="nicknameInput" class="modern-input" placeholder="сменить">
@@ -455,6 +462,17 @@
             noDb: 'База данных не подключена',
             loginNeeded: 'Войдите через Telegram',
             langLabel: 'Язык',
+            chances: 'Шансы',
+            fastSpin: 'Быстрый спин',
+            clearAll: 'Очистить всё',
+            customBet: 'Своя ставка',
+            setBet: 'Установить',
+            tabWorld: 'Мир',
+            tabFriends: 'Друзья',
+            faqBtn: 'FAQ',
+            fairnessBtn: 'Честность',
+            closeFaqBtn: 'Закрыть',
+            closeFairnessBtn: 'Закрыть',
         },
         en: {
             slogan: '✨ FortuneFlip',
@@ -504,12 +522,23 @@
             spins: 'spins',
             spinsDiamond: 'spins💎',
             errorRead: 'Database read error. Check connection.',
-            errorSave: 'Error: failed to save user. Firebase unavailable.',
+            errorSave: 'Error: failed to save user save user. Firebase unavailable.',
             errorSpin: 'Error: stats not saved. Firebase unavailable.',
             errorNick: 'Nickname taken',
+            faqBtn: 'FAQ',
+            fairnessBtn: 'Fairness',
+            closeFaqBtn: 'Close',
+            closeFairnessBtn: 'Close',
             noDb: 'Database not connected',
             loginNeeded: 'Log in via Telegram',
             langLabel: 'Language',
+            chances: 'Chances',
+            fastSpin: 'Fast spin',
+            clearAll: 'Clear all',
+            customBet: 'Custom bet',
+            setBet: 'Set',
+            tabWorld: 'World',
+            tabFriends: 'Friends',
         }
     };
     function t(key) { return (I18N[lang] || I18N.ru)[key] || key; }
@@ -603,8 +632,8 @@
         document.getElementById('slogan').textContent = t('slogan');
         document.querySelectorAll('.mode-option[data-mode="daily"]').forEach(e => e.textContent = t('modeDaily'));
         document.querySelectorAll('.mode-option[data-mode="donate"]').forEach(e => e.textContent = t('modeDonate'));
-        document.getElementById('faqBtn').textContent = '📖 ' + (lang === 'en' ? 'FAQ' : 'FAQ');
-        document.getElementById('fairnessBtn').textContent = '🔒 ' + (lang === 'en' ? 'Fairness' : 'Честность');
+        document.getElementById('faqBtn').textContent = '📖 ' + t('faqBtn');
+        document.getElementById('fairnessBtn').textContent = '🔒 ' + t('fairnessBtn');
         document.getElementById('faqModal').querySelector('h2').textContent = t('faqTitle');
         document.getElementById('fairnessModal').querySelector('h2').textContent = t('fairTitle');
         document.querySelector('#fairnessModal p:first-of-type').innerHTML = t('fairText');
@@ -640,17 +669,26 @@
         document.getElementById('customBetInput').placeholder = t('customBet');
         document.getElementById('closeResultBtn').textContent = t('close');
         document.getElementById('shareResultBtn').textContent = t('share');
+        document.getElementById('closeFaqBtn').textContent = t('closeFaqBtn');
+        document.getElementById('closeFairnessBtn').textContent = t('closeFairnessBtn');
         // Admin modal
         document.querySelector('#adminModal h2').textContent = t('adminPanel');
         const adminClose = document.getElementById('closeAdminModal');
         if (adminClose) adminClose.textContent = t('close');
+        // Daily page elements
+        document.querySelector('.chance-toggle .toggle-label').textContent = t('chances');
+        document.querySelector('.fast-spin-toggle .toggle-label').textContent = t('fastSpin');
+        document.getElementById('clearAllBtn').textContent = '🗑️ ' + t('clearAll');
+        document.getElementById('setCustomBetBtn').textContent = t('setBet');
         // Tab labels
-        document.querySelectorAll('.tab-option[data-tab="world"]').forEach(e => e.textContent = lang === 'en' ? 'World' : 'Мир');
-        document.querySelectorAll('.tab-option[data-tab="friends"]').forEach(e => e.textContent = lang === 'en' ? 'Friends' : 'Друзья');
+        document.querySelectorAll('.tab-option[data-tab="world"]').forEach(e => e.textContent = t('tabWorld'));
+        document.querySelectorAll('.tab-option[data-tab="friends"]').forEach(e => e.textContent = t('tabFriends'));
         // Lang toggle in settings
         const langRow = document.getElementById('langRow');
         if (langRow) langRow.querySelector('.toggle-label').textContent = t('langLabel');
-        document.getElementById('langToggle').checked = (lang === 'en');
+        document.querySelectorAll('#langSwitch .lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
         // Re-render leaderboard with new labels
         renderLeaderboard();
     }
@@ -1146,10 +1184,12 @@
         document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
         document.getElementById('muteBtn').classList.toggle('muted', muted);
     });
-    document.getElementById('langToggle').addEventListener('change', function() {
-        lang = this.checked ? 'en' : 'ru';
-        localStorage.setItem('lang', lang);
-        applyLang();
+    document.querySelectorAll('#langSwitch .lang-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            lang = this.dataset.lang;
+            localStorage.setItem('lang', lang);
+            applyLang();
+        });
     });
     document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.remove('active'));
     document.getElementById('volumeSlider').addEventListener('input', function() {
