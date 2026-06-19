@@ -98,13 +98,14 @@
         .pin {
             position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
             width: 24px; height: 30px; z-index: 10;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); transition: transform 0.1s;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
         }
         .pin svg { width: 100%; height: 100%; fill: var(--accent); }
-        .pin.bump { animation: pinBump 0.1s ease; }
+        .pin.bump { animation: pinBump 0.12s ease-out; }
         @keyframes pinBump {
             0% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(6px); }
+            30% { transform: translateX(-50%) translateY(8px); }
+            60% { transform: translateX(-50%) translateY(-2px); }
             100% { transform: translateX(-50%) translateY(0); }
         }
         .bet-panel {
@@ -231,6 +232,14 @@
         .top-player.top-1 .player-name { color: #FFD700; }
         .top-player.top-2 .player-name { color: #E0E0E0; }
         .top-player.top-3 .player-name { color: #D4A05A; }
+        .top-player.you-row {
+            margin-top: 8px; border: 1px dashed var(--accent); background: transparent;
+        }
+        .you-badge {
+            font-size: 0.7rem; font-weight: 700; color: var(--accent);
+            background: rgba(233,69,96,0.15); padding: 2px 8px; border-radius: 10px;
+            text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+        }
         .top-player img { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
         .top-player.top-1 img { border-color: #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
         .top-player.top-2 img { border-color: #C0C0C0; box-shadow: 0 0 8px rgba(192,192,192,0.3); }
@@ -248,6 +257,16 @@
             background: currentColor; border-radius: 50%;
             opacity: 0.7; flex-shrink: 0;
         }
+        .footer {
+            display: flex; gap: 10px; justify-content: center; padding: 16px 0 24px;
+            border-top: 1px solid var(--border); margin-top: 16px;
+        }
+        .footer-btn {
+            padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--text); font-size: 0.8rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .footer-btn:hover { background: var(--accent); color: #fff; }
 
         .result-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -534,6 +553,53 @@
     </div>
 </div>
 
+<div class="footer" id="footer">
+    <button class="footer-btn" id="faqBtn">📖 FAQ</button>
+    <button class="footer-btn" id="fairnessBtn">🔒 Честность</button>
+</div>
+
+<div class="modal" id="faqModal">
+    <div class="modal-content" style="text-align:left;padding:24px;max-width:420px;">
+        <h2 style="margin:0 0 16px;">FAQ — Частые вопросы</h2>
+        <div style="font-size:0.9rem;line-height:1.6;color:var(--muted-text);">
+            <p><strong>🎲 Как играть?</strong><br>Выбери режим (🎲 — повседневное, 💎 — донат), настрой варианты и крути колесо!</p>
+            <p><strong>💎 Донат-колесо:</strong></p>
+            <ul>
+                <li><b>Lose</b> (55%) — ставка сгорает</li>
+                <li><b>x1</b> (20%) — возврат ставки</li>
+                <li><b>x2</b> (10%) — удвоение</li>
+                <li><b>x½</b> (5%) — половина ставки</li>
+                <li><b>x3</b> (5%) — тройной выигрыш</li>
+                <li><b>x5</b> (3%) — пять ставок</li>
+                <li><b>x10</b> (2%) — джекпот!</li>
+            </ul>
+            <p><strong>💰 Как пополнить?</strong><br>Скоро будет доступно пополнение через Telegram Stars и TON.</p>
+            <p><strong>📊 Лидерборд:</strong><br>Топ показывает игроков по количеству спинов. В повседневном режиме — daily спины, в донатном — донат-спины.</p>
+        </div>
+        <button id="closeFaqBtn" style="margin-top:16px;background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:25px;font-size:0.9rem;cursor:pointer;">Закрыть</button>
+    </div>
+</div>
+
+<div class="modal" id="fairnessModal">
+    <div class="modal-content" style="text-align:left;padding:24px;max-width:420px;">
+        <h2 style="margin:0 0 16px;">🔒 Проверка честности</h2>
+        <div style="font-size:0.9rem;line-height:1.6;color:var(--muted-text);">
+            <p>Донат-колесо использует <b>предопределённый результат</b>:</p>
+            <ol>
+                <li>Перед каждым спином система выбирает выигрышный сектор по заданным весам (см. FAQ)</li>
+                <li>Рассчитывается угол остановки так, чтобы пин указал на выигрышный сектор</li>
+                <li>Колесо анимируется и останавливается на этом угле</li>
+            </ol>
+            <p>Шансы каждого сектора:</p>
+            <ul id="fairnessOddsList"></ul>
+            <p style="font-size:0.85rem;opacity:0.7;margin-top:12px;">
+                Результат определяется до начала вращения и не меняется во время анимации.
+            </p>
+        </div>
+        <button id="closeFairnessBtn" style="margin-top:16px;background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:25px;font-size:0.9rem;cursor:pointer;">Закрыть</button>
+    </div>
+</div>
+
 <div class="result-overlay" id="resultOverlay">
     <div class="result-content">
         <h2 id="resultTitle">Поздравляем, Ваш результат:</h2>
@@ -591,12 +657,12 @@
 <div class="modal" id="welcomeModal">
     <div class="modal-content" style="text-align:center;padding:30px 24px;">
         <div style="font-size:48px;margin-bottom:10px;">🎉</div>
-        <h2 style="margin:0 0 8px;font-size:1.3rem;">Добро пожаловать!</h2>
+        <h2 style="margin:0 0 8px;font-size:1.3rem;">Спасибо за регистрацию!</h2>
         <p style="margin:0 0 16px;color:var(--muted-text);line-height:1.5;">
             Ты получил <strong style="color:var(--accent);font-size:1.2rem;">100 Fort</strong> в подарок 🎁
         </p>
         <p style="margin:0 0 20px;color:var(--muted-text);font-size:0.9rem;line-height:1.4;">
-            Попробуй донат-колесо — удвой, утрой или сорви Джекпот!<br>
+            Испытай удачу — крути колесо и выигрывай!<br>
             <span style="opacity:0.7;">Удача любит смелых ✨</span>
         </p>
         <button id="welcomeOkBtn" style="background:var(--accent);color:#fff;border:none;padding:12px 40px;border-radius:30px;font-size:1rem;font-weight:600;cursor:pointer;">Крутить!</button>
@@ -660,17 +726,32 @@
     let selectedBet = 10;
     let dailyBonusUsed = false;
 
-    // Реальные веса (вероятности) – используются и для отрисовки, и для расчёта
+    // Секторы донат-колеса: равный визуальный размер, взвешенные шансы
     const donateSectors = [
-        { label: 'x2', weight: 12, color: '#FFD700' },
-        { label: 'x0', weight: 38, color: '#C62828' },
-        { label: 'x1', weight: 25, color: '#2E7D32' },
-        { label: 'x0.5', weight: 20, color: '#EF6C00' },
-        { label: 'Джекпот', weight: 3, color: '#6A1B9A' },
-        { label: 'x3', weight: 1, color: '#1565C0' },
-        { label: 'Бесплатно', weight: 1, color: '#00838F' },
+        { label: 'Lose', weight: 55, color: '#C62828' },
+        { label: 'x1', weight: 20, color: '#2E7D32' },
+        { label: 'x2', weight: 10, color: '#FFD700' },
+        { label: 'x½', weight: 5, color: '#EF6C00' },
+        { label: 'x3', weight: 5, color: '#1565C0' },
+        { label: 'x5', weight: 3, color: '#6A1B9A' },
+        { label: 'x10', weight: 2, color: '#00C853' },
     ];
     const totalDonateWeight = donateSectors.reduce((a,b)=>a+b.weight, 0);
+    const DONATE_SLOTS = donateSectors.length;
+    const DONATE_SLICE = 2 * Math.PI / DONATE_SLOTS;
+
+    // Выбор победителя по весам
+    function pickDonateWinner() {
+        let r = Math.random() * totalDonateWeight;
+        for (let i = 0; i < donateSectors.length; i++) {
+            r -= donateSectors[i].weight;
+            if (r <= 0) return i;
+        }
+        return donateSectors.length - 1;
+    }
+
+    // Множители выигрыша
+    const donateMultMap = { 'Lose': 0, 'x1': 1, 'x2': 2, 'x½': 0.5, 'x3': 3, 'x5': 5, 'x10': 10 };
 
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
@@ -706,6 +787,10 @@
                 } else {
                     userRef.update({ firstName, username, photoUrl })
                         .catch(err => console.error('User update failed:', err));
+                    // миграция старых пользователей: spins → spins_daily, spins_donate
+                    if (snap.val().spins && !snap.val().spins_daily) {
+                        userRef.update({ spins_daily: snap.val().spins || 0, spins_donate: 0 });
+                    }
                 }
                 db.ref('users/' + currentUserTelegramId).on('value', snap => {
                     const data = snap.val();
@@ -833,14 +918,13 @@
     });
 
     // Донат-спин
-    let actualDonateBet = 10, isFreeSpin = false;
+    let actualDonateBet = 10, isFreeSpin = false, donateWinner = 0, donateTarget = 0;
     document.getElementById('donateWheelContainer').addEventListener('click', () => {
         if (isDonateSpinning) return;
         isFreeSpin = false;
         const today = new Date().toDateString();
         if (localStorage.getItem('dailyBonusDate') !== today) dailyBonusUsed = false;
         if (!dailyBonusUsed && fortBalance < selectedBet) {
-            // Бесплатный спин с фиксированной ставкой 10 F (не меняем selectedBet)
             actualDonateBet = 10;
             isFreeSpin = true;
             dailyBonusUsed = true;
@@ -854,9 +938,22 @@
         if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
 
         stopDonateAnimation();
+        // Предопределяем победителя по весам
+        donateWinner = pickDonateWinner();
+        // Пин наверху (3π/2), сектор i занимает [i*DONATE_SLICE, (i+1)*DONATE_SLICE) в системе колеса
+        // Чтобы пин указал на сектор donateWinner, нужен donateAngle, при котором
+        // (3π/2 - donateAngle) mod 2π ∈ [donateWinner*DONATE_SLICE, (donateWinner+1)*DONATE_SLICE)
+        // donateAngle = (3π/2 - randomInSector) mod 2π
+        const sectorStart = donateWinner * DONATE_SLICE;
+        const sectorEnd = (donateWinner + 1) * DONATE_SLICE;
+        const targetInWheel = sectorStart + Math.random() * (sectorEnd - sectorStart);
+        donateTarget = (3 * Math.PI / 2 - targetInWheel + 2 * Math.PI) % (2 * Math.PI);
+        // Вычисляем начальную скорость так, чтобы колесо сделало ~5-8 оборотов и остановилось на donateTarget
+        const rotations = 5 + Math.random() * 3;
+        const totalAngle = rotations * 2 * Math.PI + ((donateTarget - donateAngle + 2 * Math.PI) % (2 * Math.PI));
+        donateDecay = 0.985 + Math.random() * 0.005;
+        donateVelocity = totalAngle * (1 - donateDecay) / donateDecay; // приближение
         isDonateSpinning = true;
-        donateVelocity = 0.25 + Math.random() * 0.3;
-        donateDecay = 0.99;
         document.body.classList.add('spinning');
         donateAnimationId = requestAnimationFrame(donateSpinAnimation);
     });
@@ -869,31 +966,28 @@
         const cx = canvas.width / 2, cy = canvas.height / 2, radius = Math.min(cx, cy) - 12;
         let start = donateAngle;
         donateSectors.forEach((sec, i) => {
-            const slice = 2 * Math.PI * sec.weight / totalDonateWeight;
-            const end = start + slice;
+            const end = start + DONATE_SLICE;
             ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, end); ctx.closePath();
             ctx.fillStyle = sec.color; ctx.fill();
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
-            ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice / 2);
-            const fontSize = sec.weight >= 10 ? 15 : sec.weight >= 5 ? 13 : 11;
-            ctx.font = 'bold ' + fontSize + 'px "Segoe UI"';
+            ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + DONATE_SLICE / 2);
+            ctx.font = 'bold 14px "Segoe UI"';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillStyle = '#fff';
-            // тень для читаемости
             ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 3;
-            const label = sec.label === 'x1' ? 'x1' : sec.label === 'x0.5' ? 'x½' : sec.label;
-            ctx.fillText(label, radius * 0.62, 0);
+            ctx.fillText(sec.label, radius * 0.6, 0);
             ctx.restore();
             start = end;
         });
         ctx.fillStyle = '#fff'; ctx.strokeStyle = '#90caf9';
         start = donateAngle;
         donateSectors.forEach((sec, i) => {
-            const slice = 2 * Math.PI * sec.weight / totalDonateWeight;
-            const angle = start + slice / 2;
-            const px = cx + (radius + 4) * Math.cos(angle), py = cy + (radius + 4) * Math.sin(angle);
-            ctx.beginPath(); ctx.arc(px, py, 6, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
-            start += slice;
+            // пенек на границе сектора (там где задевает пин)
+            const px = cx + (radius + 4) * Math.cos(start), py = cy + (radius + 4) * Math.sin(start);
+            ctx.beginPath(); ctx.arc(px, py, 8, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(px, py, 3, 0, 2*Math.PI); ctx.fillStyle = '#0d47a1'; ctx.fill();
+            ctx.fillStyle = '#fff';
+            start += DONATE_SLICE;
         });
         ctx.beginPath(); ctx.arc(cx, cy, 25, 0, 2*Math.PI);
         ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 3; ctx.stroke();
@@ -904,33 +998,29 @@
 
     function getDonateSectorIndex(angle) {
         const raw = ((angle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-        let acc = 0;
-        for (let i = 0; i < donateSectors.length; i++) {
-            const slice = 2*Math.PI * donateSectors[i].weight / totalDonateWeight;
-            if (raw >= acc && raw < acc + slice) return i;
-            acc += slice;
-        }
-        return donateSectors.length - 1;
+        return Math.floor(raw / DONATE_SLICE);
     }
 
     function donateSpinAnimation() {
         if (!isDonateSpinning) return;
-        donateVelocity *= donateDecay; donateAngle += donateVelocity; drawDonateWheel();
-        const prevIdx = getDonateSectorIndex(donateAngle - donateVelocity);
-        const curIdx = getDonateSectorIndex(donateAngle);
-        if (curIdx !== prevIdx) {
+        const prevAngle = donateAngle;
+        donateVelocity *= donateDecay;
+        donateAngle += donateVelocity;
+        drawDonateWheel();
+        // Определяем сектор под пином (позиция пина = 3π/2 в canvas, колесо смещено на donateAngle)
+        const pinInWheel = ((3 * Math.PI / 2 - donateAngle) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+        const prevPinInWheel = ((3 * Math.PI / 2 - prevAngle) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+        if (getDonateSectorIndex(pinInWheel) !== getDonateSectorIndex(prevPinInWheel)) {
             document.getElementById('donatePin').classList.add('bump');
             setTimeout(() => document.getElementById('donatePin').classList.remove('bump'), 100);
             playTickSound();
         }
-        if (Math.abs(donateVelocity) < 0.01) {
+        if (Math.abs(donateVelocity) < 0.001 && Math.abs(donateAngle - donateTarget) < DONATE_SLICE / 2) {
             isDonateSpinning = false; document.body.classList.remove('spinning');
-            const sectorIdx = getDonateSectorIndex(donateAngle);
-            const sector = donateSectors[sectorIdx];
+            const sector = donateSectors[donateWinner];
             const bet = actualDonateBet;
-            let win = 0;
-            const multMap = { 'x2': 2, 'x3': 3, 'x1': 1, 'x0.5': 0.5, 'Бесплатно': 1, 'Джекпот': 5, 'x0': 0 };
-            win = Math.floor(bet * (multMap[sector.label] || 0));
+            const mult = donateMultMap[sector.label] || 0;
+            const win = sector.label === 'Lose' ? 0 : Math.floor(bet * mult);
             fortBalance += win; updateBalanceDisplay();
             if (db && currentUserTelegramId) {
                 db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
@@ -938,7 +1028,27 @@
                 db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
             }
             document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
-            const net = sector.label === 'x0' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
+            const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
+            document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
+            document.getElementById('resultOverlay').classList.add('active');
+            startDonateIdle();
+        } else if (Math.abs(donateVelocity) < 0.0005) {
+            // Если скорость почти нулевая, но не дошли до цели — доворачиваем принудительно
+            donateAngle += (donateTarget - donateAngle) * 0.1;
+            drawDonateWheel();
+            isDonateSpinning = false; document.body.classList.remove('spinning');
+            const sector = donateSectors[donateWinner];
+            const bet = actualDonateBet;
+            const mult = donateMultMap[sector.label] || 0;
+            const win = sector.label === 'Lose' ? 0 : Math.floor(bet * mult);
+            fortBalance += win; updateBalanceDisplay();
+            if (db && currentUserTelegramId) {
+                db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
+                db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
+                db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
+            }
+            document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
+            const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
             document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
             document.getElementById('resultOverlay').classList.add('active');
             startDonateIdle();
@@ -1021,8 +1131,9 @@
         if (currentMode !== 'daily' || isSpinning) return;
         const filled = options.filter(o => o.label.trim() !== '');
         if (filled.length < 2) { showAlert('Добавьте минимум два варианта и заполните их.'); return; }
-        isSpinning = true; document.body.classList.add('spinning');
         stopAnimation();
+        currentAngle = Math.random() * 2 * Math.PI;
+        isSpinning = true; document.body.classList.add('spinning');
         spinVelocity = fastSpin ? 0.3 + Math.random()*0.4 : 0.5 + Math.random()*0.8;
         spinDecay = fastSpin ? 0.9 : 0.98;
         animationFrameId = requestAnimationFrame(spinAnimation);
@@ -1033,14 +1144,17 @@
         spinVelocity *= spinDecay; currentAngle += spinVelocity; drawWheel();
         const num = options.length >= 2 ? options.length : 8;
         const degPer = 360 / num;
-        const cur = currentAngle * (180/Math.PI), prev = (currentAngle - spinVelocity) * (180/Math.PI);
-        if (Math.floor(cur / degPer) !== Math.floor(prev / degPer)) { bumpPin(); playTickSound(); }
+        // сектор под пином
+        const pinCur = ((3 * Math.PI / 2 - currentAngle) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+        const pinPrev = ((3 * Math.PI / 2 - (currentAngle - spinVelocity)) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+        if (Math.floor(pinCur * (180/Math.PI) / degPer) !== Math.floor(pinPrev * (180/Math.PI) / degPer)) { bumpPin(); playTickSound(); }
         if (Math.abs(spinVelocity) < 0.01) {
             isSpinning = false; document.body.classList.remove('spinning');
             let result = '?';
             if (options.length) {
                 const totalWeight = options.reduce((s,o) => s + (useWeights ? o.weight : 1), 0);
-                let raw = ((currentAngle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI), acc = 0;
+                // сектор под пином (пин наверху = 3π/2)
+                let raw = ((3 * Math.PI / 2 - currentAngle) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI), acc = 0;
                 for (let i = 0; i < options.length; i++) {
                     const slice = 2*Math.PI * (useWeights ? options[i].weight : 1) / totalWeight;
                     if (raw >= acc && raw < acc + slice) { result = options[i].label || 'Пусто'; break; }
@@ -1177,27 +1291,76 @@
 
     function loadAllUsers() {
         if (!db) return;
-        const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
-        if (window._usersRef) { window._usersRef.off('value', window._usersCb); }
-        window._usersRef = db.ref('users');
-        window._usersCb = window._usersRef.orderByChild(sortField).limitToLast(50).on('value', snap => {
+        if (window._usersLoaded) return; // однократная загрузка, сортировка по режиму
+        window._usersLoaded = true;
+        db.ref('users').limitToLast(100).on('value', snap => {
             allUsersData = [];
             if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
-            allUsersData.sort((a,b) => ((b[sortField]||0)) - (a[sortField]||0));
-            renderLeaderboard();
+            sortAndRenderLeaderboard();
         });
+    }
+    function sortAndRenderLeaderboard() {
+        const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
+        const fallbackField = currentMode === 'daily' ? 'spins' : null;
+        allUsersData.sort((a,b) => {
+            const av = a[sortField] ?? (fallbackField ? a[fallbackField] : 0) ?? 0;
+            const bv = b[sortField] ?? (fallbackField ? b[fallbackField] : 0) ?? 0;
+            return bv - av;
+        });
+        renderLeaderboard();
     }
     function renderLeaderboard() {
         const c = document.getElementById('topListContainer'); c.innerHTML = '';
         if (currentTab === 'world') {
             if (!allUsersData.length) c.innerHTML = '<div class="contact-prompt">Пока нет игроков</div>';
-            else allUsersData.slice(0,10).forEach((u,i) => c.appendChild(createPlayer(u, i+1)));
+            else {
+                allUsersData.slice(0,10).forEach((u,i) => c.appendChild(createPlayer(u, i+1)));
+                appendCurrentUserRow(c);
+            }
         } else {
             if (!friendIds.size) c.innerHTML = '<div class="contact-prompt">Чтобы увидеть друзей, разрешите доступ к контактам Telegram.<br><br><button onclick="requestContacts()">Разрешить доступ</button></div>';
             else {
                 const friends = allUsersData.filter(u => friendIds.has(u.telegramId));
                 if (!friends.length) c.innerHTML = '<div class="contact-prompt">Ваши друзья ещё не играли</div>';
-                else friends.slice(0,10).forEach((u,i) => c.appendChild(createPlayer(u, i+1)));
+                else {
+                    friends.slice(0,10).forEach((u,i) => c.appendChild(createPlayer(u, i+1)));
+                    appendCurrentUserRow(c);
+                }
+            }
+        }
+    }
+    function appendCurrentUserRow(container) {
+        if (!currentUserTelegramId) return;
+        const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
+        const idx = allUsersData.findIndex(u => (u.telegramId || u.id) === currentUserTelegramId);
+        if (idx < 0 || idx < 10) return; // уже в топе или не найден
+        const u = allUsersData[idx];
+        const row = document.createElement('div');
+        row.className = 'top-player you-row';
+        const posSpan = document.createElement('span');
+        posSpan.className = 'position';
+        posSpan.textContent = '#' + (idx + 1);
+        const img = document.createElement('img');
+        img.src = u.photoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Ccircle cx="16" cy="16" r="16" fill="%23e94560"/%3E%3C/svg%3E';
+        img.alt = 'avatar';
+        const name = document.createElement('span');
+        name.className = 'player-name';
+        name.textContent = u.nickname || u.firstName || '—';
+        const spins = document.createElement('span');
+        spins.className = 'player-spins';
+        const spinCount = currentMode === 'daily' ? (u.spins_daily ?? u.spins ?? 0) : (u.spins_donate ?? 0);
+        const label = currentMode === 'daily' ? 'спинов' : 'спинов💎';
+        spins.textContent = spinCount + ' ' + label;
+        const youBadge = document.createElement('span');
+        youBadge.className = 'you-badge';
+        youBadge.textContent = 'Вы';
+        row.appendChild(posSpan);
+        row.appendChild(img);
+        row.appendChild(name);
+        row.appendChild(spins);
+        row.appendChild(youBadge);
+        container.appendChild(row);
+    }
             }
         }
     }
@@ -1215,7 +1378,7 @@
         name.textContent = u.nickname || u.firstName || '—';
         const spins = document.createElement('span');
         spins.className = 'player-spins';
-        const spinCount = currentMode === 'daily' ? (u.spins_daily||0) : (u.spins_donate||0);
+        const spinCount = currentMode === 'daily' ? (u.spins_daily ?? u.spins ?? 0) : (u.spins_donate ?? 0);
         const label = currentMode === 'daily' ? 'спинов' : 'спинов💎';
         spins.textContent = spinCount + ' ' + label;
         div.appendChild(posSpan);
@@ -1312,7 +1475,7 @@
         await userRef.update({ spins: 0, spins_daily: 0, spins_donate: 0, fart: 100, lastReset: now });
         fortBalance = 100; updateBalanceDisplay();
         showAlert('Статистика сброшена!');
-        loadAllUsers();
+        sortAndRenderLeaderboard();
     });
 
     document.getElementById('saveSettings').addEventListener('click', async () => {
@@ -1381,7 +1544,7 @@
                 if (!confirm(`Сбросить спины пользователю ${u.nickname || u.firstName}?`)) return;
                 await db.ref('users/' + userId).update({ spins: 0 });
                 toast('Спины сброшены');
-                loadAllUsers();
+                sortAndRenderLeaderboard();
             });
             const resetBal = document.createElement('button');
             resetBal.className = 'reset-balance';
@@ -1390,7 +1553,7 @@
                 if (!confirm(`Сбросить баланс пользователю ${u.nickname || u.firstName}?`)) return;
                 await db.ref('users/' + userId).update({ fart: 0 });
                 toast('Баланс сброшен');
-                loadAllUsers();
+                sortAndRenderLeaderboard();
             });
             // Добавление баланса
             const addRow = document.createElement('div');
@@ -1411,7 +1574,8 @@
                     await db.ref('users/' + userId).update({ fart: current + val });
                     toast(`Баланс пополнен на ${val} F`);
                     addInput.value = '';
-                    loadAllUsers();
+                    sortAndRenderLeaderboard();
+            sortAndRenderLeaderboard();
                 } catch (e) {
                     toast('Ошибка: ' + e.message);
                 }
@@ -1433,6 +1597,23 @@
         document.getElementById('adminTotalUsers').textContent = allUsersData.length;
         document.getElementById('adminTotalSpins').textContent = totalSpins;
     }
+
+    // FAQ
+    document.getElementById('faqBtn').addEventListener('click', () => document.getElementById('faqModal').classList.add('active'));
+    document.getElementById('closeFaqBtn').addEventListener('click', () => document.getElementById('faqModal').classList.remove('active'));
+
+    // Fairness
+    document.getElementById('fairnessBtn').addEventListener('click', () => {
+        const list = document.getElementById('fairnessOddsList');
+        list.innerHTML = '';
+        donateSectors.forEach(s => {
+            const li = document.createElement('li');
+            li.innerHTML = `<b>${s.label}</b> — ${((s.weight/totalDonateWeight)*100).toFixed(1)}%`;
+            list.appendChild(li);
+        });
+        document.getElementById('fairnessModal').classList.add('active');
+    });
+    document.getElementById('closeFairnessBtn').addEventListener('click', () => document.getElementById('fairnessModal').classList.remove('active'));
 
     const themeToggle = document.getElementById('themeToggle');
     function setTheme(light) {
