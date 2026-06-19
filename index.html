@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Колесо фортуны (dev)</title>
+    <title>FortuneFlip (dev)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -165,13 +165,13 @@
 </head>
 <body>
 <div class="login-screen" id="loginScreen">
-    <h1>🎡 Колесо фортуны</h1>
+    <h1>🎡 FortuneFlip</h1>
     <p>Войдите через Telegram, чтобы продолжить</p>
     <div id="telegramLoginBtn"></div>
 </div>
 
 <div class="top-bar">
-    <div class="slogan" id="slogan">✨ Удача ждёт тебя!</div>
+    <div class="slogan" id="slogan">✨ FortuneFlip</div>
     <div class="balance-block" id="balanceBlock">
         <span id="fortBalance">0</span> <span>F</span>
     </div>
@@ -253,19 +253,19 @@
     <div class="modal-content" style="text-align:left;padding:24px;max-width:420px;">
         <h2 style="margin:0 0 16px;">FAQ — Частые вопросы</h2>
         <div style="font-size:0.9rem;line-height:1.6;color:var(--muted-text);">
-            <p><strong>🎲 Как играть?</strong><br>Выбери режим (🎲 — повседневное, 💎 — донат), настрой варианты и крути колесо!</p>
-            <p><strong>💎 Донат-колесо:</strong></p>
+            <p><strong>🎲 Как играть?</strong><br>Выбери режим (🎲 — daily, 💎 — FORT wheel), настрой варианты и крути колесо!</p>
+            <p><strong>💎 FORT wheel:</strong></p>
             <ul>
                 <li><b>Lose</b> (55%) — ставка сгорает</li>
                 <li><b>x1</b> (20%) — возврат ставки</li>
                 <li><b>x2</b> (10%) — удвоение</li>
-                <li><b>x½</b> (5%) — половина ставки</li>
+                <li><b>x0.5</b> (5%) — половина ставки</li>
                 <li><b>x3</b> (5%) — тройной выигрыш</li>
                 <li><b>x5</b> (3%) — пять ставок</li>
                 <li><b>x10</b> (2%) — джекпот!</li>
             </ul>
             <p><strong>💰 Как пополнить?</strong><br>Скоро будет доступно пополнение через Telegram Stars и TON.</p>
-            <p><strong>📊 Лидерборд:</strong><br>Топ показывает игроков по количеству спинов. В повседневном режиме — daily спины, в донатном — донат-спины.</p>
+            <p><strong>📊 Лидерборд:</strong><br>Топ показывает игроков по количеству спинов. В daily режиме — daily спины, в FORT wheel — FORT-спины.</p>
         </div>
         <button id="closeFaqBtn" style="margin-top:16px;background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:25px;font-size:0.9rem;cursor:pointer;">Закрыть</button>
     </div>
@@ -275,7 +275,7 @@
     <div class="modal-content" style="text-align:left;padding:24px;max-width:420px;">
         <h2 style="margin:0 0 16px;">🔒 Проверка честности</h2>
         <div style="font-size:0.9rem;line-height:1.6;color:var(--muted-text);">
-            <p>Донат-колесо использует <b>предопределённый результат</b>:</p>
+            <p>FORT wheel использует <b>предопределённый результат</b>:</p>
             <ol>
                 <li>Перед каждым спином система выбирает выигрышный сектор по заданным весам (см. FAQ)</li>
                 <li>Рассчитывается угол остановки так, чтобы пин указал на выигрышный сектор</li>
@@ -399,7 +399,7 @@
         { label: 'Lose', weight: 55, color: '#C62828' },
         { label: 'x1', weight: 20, color: '#2E7D32' },
         { label: 'x2', weight: 10, color: '#FFD700' },
-        { label: 'x½', weight: 5, color: '#EF6C00' },
+        { label: 'x0.5', weight: 5, color: '#EF6C00' },
         { label: 'x3', weight: 5, color: '#1565C0' },
         { label: 'x5', weight: 3, color: '#6A1B9A' },
         { label: 'x10', weight: 2, color: '#00C853' },
@@ -413,7 +413,7 @@
         for (let i = 0; i < donateSectors.length; i++) { r -= donateSectors[i].weight; if (r <= 0) return i; }
         return donateSectors.length - 1;
     }
-    const donateMultMap = { 'Lose': 0, 'x1': 1, 'x2': 2, 'x½': 0.5, 'x3': 3, 'x5': 5, 'x10': 10 };
+    const donateMultMap = { 'Lose': 0, 'x1': 1, 'x2': 2, 'x0.5': 0.5, 'x3': 3, 'x5': 5, 'x10': 10 };
 
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
@@ -594,6 +594,23 @@
     function stopDonateAnimation() { if (donateAnimationId) { cancelAnimationFrame(donateAnimationId); donateAnimationId = null; } }
     function getDonateSectorIndex(angle) { return Math.floor((((angle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI)) / DONATE_SLICE); }
 
+    function finishDonateSpin() {
+        donateAngle = donateTarget; drawDonateWheel();
+        isDonateSpinning = false; document.body.classList.remove('spinning');
+        const sector = donateSectors[donateWinner], bet = actualDonateBet;
+        const win = sector.label === 'Lose' ? 0 : Math.floor(bet * (donateMultMap[sector.label] || 0));
+        fortBalance += win; updateBalanceDisplay();
+        if (db && currentUserTelegramId) {
+            db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
+            db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
+            db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
+        }
+        document.getElementById('resultTitle').textContent = '💎 FORT wheel:';
+        const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
+        document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
+        document.getElementById('resultOverlay').classList.add('active');
+        startDonateIdle();
+    }
     function donateSpinAnimation() {
         if (!isDonateSpinning) return;
         const prevAngle = donateAngle;
@@ -605,37 +622,14 @@
             setTimeout(() => document.getElementById('donatePin').classList.remove('bump'), 100);
             playTickSound();
         }
-        if (Math.abs(donateVelocity) < 0.001 && Math.abs(donateAngle - donateTarget) < DONATE_SLICE / 2) {
-            isDonateSpinning = false; document.body.classList.remove('spinning');
-            const sector = donateSectors[donateWinner], bet = actualDonateBet;
-            const win = sector.label === 'Lose' ? 0 : Math.floor(bet * (donateMultMap[sector.label] || 0));
-            fortBalance += win; updateBalanceDisplay();
-            if (db && currentUserTelegramId) {
-                db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
-                db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
-                db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
+        if (Math.abs(donateVelocity) < 0.001) {
+            if (Math.abs(donateAngle - donateTarget) < 0.02) {
+                finishDonateSpin();
+            } else {
+                donateAngle += (donateTarget - donateAngle) * 0.12; drawDonateWheel();
+                cancelAnimationFrame(donateAnimationId);
+                donateAnimationId = requestAnimationFrame(donateSpinAnimation);
             }
-            document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
-            const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
-            document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
-            document.getElementById('resultOverlay').classList.add('active');
-            startDonateIdle();
-        } else if (Math.abs(donateVelocity) < 0.0005) {
-            donateAngle += (donateTarget - donateAngle) * 0.1; drawDonateWheel();
-            isDonateSpinning = false; document.body.classList.remove('spinning');
-            const sector = donateSectors[donateWinner], bet = actualDonateBet;
-            const win = sector.label === 'Lose' ? 0 : Math.floor(bet * (donateMultMap[sector.label] || 0));
-            fortBalance += win; updateBalanceDisplay();
-            if (db && currentUserTelegramId) {
-                db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
-                db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
-                db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
-            }
-            document.getElementById('resultTitle').textContent = '💎 Донат-колесо:';
-            const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
-            document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
-            document.getElementById('resultOverlay').classList.add('active');
-            startDonateIdle();
         } else { donateAnimationId = requestAnimationFrame(donateSpinAnimation); }
     }
 
@@ -836,13 +830,12 @@
     }
 
     function loadAllUsers() {
-        if (!db || window._usersLoaded) return;
-        window._usersLoaded = true;
-        db.ref('users').limitToLast(100).on('value', snap => {
+        if (!db) return;
+        db.ref('users').limitToLast(100).once('value', snap => {
             allUsersData = [];
             if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
             sortAndRenderLeaderboard();
-        });
+        }, err => console.error('Leaderboard load error:', err));
     }
     function sortAndRenderLeaderboard() {
         const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
@@ -1049,8 +1042,7 @@
     function updateTime() { document.getElementById('localTime').textContent = new Date().toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' }); }
     setInterval(updateTime, 1000); updateTime();
 
-    const slogans = ["Крути судьбу смелее!","Твой выбор — твоя удача!","Вращай и побеждай!","Сегодня твой день!","Фортуна улыбается смелым!","Поверни колесо к успеху!","Шанс на миллион!","Реши, что важнее!","Пусть удача крутится с тобой!","Колесо решит всё!","Удача ждёт тебя!"];
-    document.getElementById('slogan').textContent = slogans[Math.floor(Math.random() * slogans.length)];
+    document.getElementById('slogan').textContent = '✨ FortuneFlip';
 
     let donateIdleAnimationId = null;
     function startDonateIdle() {
