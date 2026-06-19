@@ -57,10 +57,11 @@
         .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.3s; }
         input:checked + .slider { background-color: #4caf50; }
         input:checked + .slider:before { transform: translateX(26px); }
-        .lang-switch { display: flex; background: var(--input-bg); border-radius: 20px; padding: 2px; }
-        .lang-btn { flex: 1; padding: 6px 0; border: none; background: transparent; color: var(--muted-text); font-weight: 600; font-size: 0.8rem; border-radius: 18px; cursor: pointer; transition: all 0.2s; }
-        .lang-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(233,69,96,0.4); }
-        .lang-btn:hover:not(.active) { color: var(--text); }
+        .lang-switch { position: relative; display: flex; background: var(--input-bg); border-radius: 12px; padding: 4px; }
+        .lang-btn { flex: 1; text-align: center; padding: 8px 12px; font-weight: 600; font-size: 0.95rem; color: var(--muted-text); cursor: pointer; z-index: 1; transition: color 0.3s; user-select: none; border: none; background: transparent; }
+        .lang-btn.active { color: var(--text); }
+        #langBg { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: var(--accent); border-radius: 10px; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1); }
+        #langSwitch.en #langBg { transform: translateX(100%); }
         .option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
         .option-row input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 10px; border: none; background: var(--input-bg); color: var(--text); font-size: 0.95rem; }
         .weight-wrapper { position: relative; width: 60px; }
@@ -328,9 +329,10 @@
             <h2>Настройки</h2>
             <div class="chance-toggle" id="langRow">
                 <span class="toggle-label">Язык</span>
-                <div class="lang-switch" id="langSwitch">
-                    <button class="lang-btn" data-lang="ru">RU</button>
-                    <button class="lang-btn" data-lang="en">ENG</button>
+                <div class="tab-switch" id="langSwitch">
+                    <div class="tab-background" id="langBg"></div>
+                    <button class="tab-option lang-btn active" data-lang="ru">RU</button>
+                    <button class="tab-option lang-btn" data-lang="en">ENG</button>
                 </div>
             </div>
             <label>Никнейм</label>
@@ -526,7 +528,7 @@
             spins: 'spins',
             spinsDiamond: 'spins💎',
             errorRead: 'Database read error. Check connection.',
-            errorSave: 'Error: failed to save user save user. Firebase unavailable.',
+            errorSave: 'Error: failed to save user. Firebase unavailable.',
             errorSpin: 'Error: stats not saved. Firebase unavailable.',
             errorNick: 'Nickname taken',
             faqBtn: 'FAQ',
@@ -690,9 +692,11 @@
         // Lang toggle in settings
         const langRow = document.getElementById('langRow');
         if (langRow) langRow.querySelector('.toggle-label').textContent = t('langLabel');
-        document.querySelectorAll('#langSwitch .lang-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.lang === lang);
-        });
+        const langSwitch = document.getElementById('langSwitch');
+        if (langSwitch) {
+            langSwitch.classList.toggle('en', lang === 'en');
+            langSwitch.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+        }
         // Re-render leaderboard with new labels
         renderLeaderboard();
     }
@@ -790,7 +794,7 @@
         const totalAngle = rotations * 2 * Math.PI + ((donateTarget - donateAngle + 2 * Math.PI) % (2 * Math.PI));
         donateDecay = 0.985 + Math.random() * 0.005;
         // Правильная формула: v0 = totalAngle * (1 - decay) — колесо натурально остановится на целе
-        donateVelocity = totalAngle * (1 - donateDecay) / donateDecay;
+        donateVelocity = totalAngle * (1 - donateDecay);
         isDonateSpinning = true; document.body.classList.add('spinning');
         donateAnimationId = requestAnimationFrame(donateSpinAnimation);
     });
@@ -836,7 +840,6 @@
         if (db && currentUserTelegramId) {
             db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
             db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
-            db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
         }
         document.getElementById('resultTitle').textContent = t('resultDonate');
         const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
@@ -967,8 +970,7 @@
             playWinSound();
             document.getElementById('shareResultBtn').onclick = () => { tg.openTelegramLink(`https://t.me/share/url?url=&text=${encodeURIComponent('🎉 Мне выпало: ' + result + '\nПопробуй и ты: @Fortunef3sBot')}`); };
             if (db && options.length >= 2 && currentUserTelegramId) {
-                db.ref('users/' + currentUserTelegramId + '/spins_daily').transaction(v => (v || 0) + 1);
-                db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1, (err, committed) => {
+                db.ref('users/' + currentUserTelegramId + '/spins_daily').transaction(v => (v || 0) + 1, (err, committed) => {
                     if (err) { console.error('Spin save failed:', err); showAlert(t('errorSpin')); }
                 });
             }
@@ -1270,7 +1272,7 @@
         header.innerHTML = '<span>Имя</span><span class="admin-id">ID</span><span class="admin-stat">Daily</span><span class="admin-stat">💎</span><span class="admin-stat">Всего</span><span class="admin-stat">Баланс</span><span class="admin-actions"></span>';
         container.appendChild(header);
         allUsersData.forEach(u => {
-            totalSpins += (u.spins || 0);
+            totalSpins += ((u.spins_daily || 0) + (u.spins_donate || 0));
             const row = document.createElement('div'); row.className = 'user-row';
             const name = document.createElement('span'); name.className = 'admin-name'; name.textContent = u.nickname || u.firstName || '—';
             const id = document.createElement('span'); id.className = 'admin-id'; id.textContent = u.telegramId || '—';
