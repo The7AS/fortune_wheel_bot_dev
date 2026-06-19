@@ -1,44 +1,40 @@
-# FortuneFlip 🎡
+# FortuneFlip
 
-Telegram Mini App — колесо фортуны с двумя режимами, валютой FORT и лидербордом.
+Telegram Mini App is a wheel of fortune with two modes, the FORT currency and the leaderboard.
 
-## Режимы
+## Modes
 
-- **🎲 Daily** — настраиваемые варианты с шансами и весами, бесплатные крутки
-- **💎 FORT Wheel** — ставки на FORT с предопределённым результатом:
-  Lose 55% | x1 20% | x2 10% | x0.5 5% | x3 5% | x5 3% | x10 2%
+- **Daily** — customizable options with odds and weights, free spins
+- **FORT Wheel** — bets on FORT with a predefined result:
+Lose 55% | x1 20% | x2 10% | x0.5 5% | x3 5% | x5 3% | x10 2%
 
-## Фичи
+## Features
 
-- Telegram WebApp + браузер (Login Widget)
+- Telegram WebApp + browser (Login Widget)
 - Firebase Realtime Database (europe-west1)
-- Лидерборд топ-100 (daily / FORT спины)
-- Реалтайм-обновление после каждого спина
-- Админ-панель: управление балансом, сброс статистики
-- Тёмная/светлая тема + авто-определение
-- Локализация RU/EN (авто + переключатель)
-- Звук, пресеты вариантов, быстрый спин, массовое добавление
-- Холостые и idle-анимации колёс
+- Top 100 Leaderboard (daily / FORTUNE)
+- Realtime update after each spin
+- Admin panel: balance management, statistics reset
+- Dark/light theme + auto-detection
+- RU/EN localization (auto + switch)
+- Sound, presets of options, fast spin, mass addition
+- Idle and idle wheel animations
 
-## Стек
+## Stack
 
 - HTML + CSS + Vanilla JS (single‑file)
 - Firebase Realtime Database
 - Telegram WebApp SDK
 
-## Локальная разработка
+## Local development
 
 ```bash
 git clone https://github.com/the7as/fortune_wheel_bot_dev.git
 ```
 
-Открой `wheel.html` в браузере или через Live Server.
+Open it `wheel.html ` in a browser or via a Live Server.
 
-## Деплой
+## Deployment
 
-Заливается вручную на GitHub Pages:
+Filled in manually on GitHub Pages:
 `https://the7as.github.io/fortune_wheel_bot_dev/`
-
-## Админ
-
-UID: `452456163`
