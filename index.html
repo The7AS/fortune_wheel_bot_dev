@@ -1140,15 +1140,9 @@
             db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
             db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
         }
-        document.getElementById('resultTitle').textContent = t('resultDonate');
-        const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
-        const netStr = (net >= 0 ? '+' : '') + net;
-        document.getElementById('resultText').textContent = sector.label + ' (' + netStr + ' F)';
-        document.getElementById('resultOverlay').classList.add('active');
-        document.getElementById('shareResultBtn').onclick = () => {
-            const shareText = formatI18n('shareDonate', { result: sector.label, net: netStr });
-            tg.openTelegramLink(`https://t.me/share/url?url=&text=${encodeURIComponent(shareText)}`);
-        };
+        const net = win - bet;
+        const netStr = (net >= 0 ? '+' : '') + net + ' F';
+        toast(sector.label + ' · ' + netStr);
         hapticNotify(sector.label === 'Lose' ? 'warning' : 'success');
         startDonateIdle();
     }
