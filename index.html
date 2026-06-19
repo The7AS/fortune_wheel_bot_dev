@@ -319,11 +319,15 @@
         <button id="closePresetsModal" style="margin-top:10px;">Закрыть</button>
     </div>
 </div>
-<div class="modal" id="settingsModal">
-    <div class="modal-content">
-        <h2>Настройки</h2>
-        <label>Никнейм</label>
-        <input type="text" id="nicknameInput" class="modern-input" placeholder="сменить">
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2>Настройки</h2>
+            <div class="chance-toggle" id="langRow">
+                <span class="toggle-label">Язык / Language</span>
+                <label class="switch"><input type="checkbox" id="langToggle"><span class="slider"></span></label>
+            </div>
+            <label>Никнейм</label>
+            <input type="text" id="nicknameInput" class="modern-input" placeholder="сменить">
         <div class="volume-row">
             <button class="mute-btn" id="muteBtn">🔊</button>
             <input type="range" id="volumeSlider" min="0" max="100" value="50">
@@ -331,7 +335,7 @@
         </div>
         <div style="margin-top:12px;"><button id="resetStatsBtn">Сбросить статистику</button></div>
         <div id="adminPanelBtn" style="margin-top:12px; display:none;"><button id="openAdminPanel">Панель администратора</button></div>
-        <div class="db-status" id="dbStatus" style="display:none">База данных: <span id="dbStatusText">...проверка</span></div>
+        <div class="db-status" id="dbStatus" style="display:none" data-label="dbStatus"><span id="dbStatusText">...</span></div>
         <div class="settings-actions">
             <button id="saveSettings" class="settings-btn-action">Сохранить</button>
             <button id="closeSettings" class="settings-btn-action">Закрыть</button>
@@ -394,6 +398,130 @@
 
     let currentUserTelegramId = null, isAdmin = false, allUsersData = [], friendIds = new Set();
     let currentTab = 'world', currentMode = 'daily', fortBalance = 0, selectedBet = 10, dailyBonusUsed = false;
+    let lang = 'ru';
+
+    const I18N = {
+        ru: {
+            slogan: '✨ FortuneFlip',
+            loginTitle: '🎡 FortuneFlip',
+            loginDesc: 'Войдите через Telegram, чтобы продолжить',
+            modeDaily: '🎲',
+            modeDonate: '💎',
+            faqHow: 'Выбери режим (🎲 — daily, 💎 — FORT wheel), настрой варианты и крути колесо!',
+            noPlayers: 'Пока нет игроков',
+            friendPrompt: 'Чтобы увидеть друзей, разрешите доступ к контактам Telegram.',
+            friendBtn: 'Разрешить доступ',
+            noFriends: 'Ваши друзья ещё не играли',
+            balance: 'Пополнение FORT',
+            balanceMsg: 'Скоро можно будет купить FORT за Telegram Stars или TON. Пока дарим 50 F для теста!',
+            balanceBtn: 'Получить 50 F',
+            cancel: 'Отмена',
+            noFort: 'Недостаточно FORT',
+            addOptions: 'Добавьте минимум два варианта и заполните их.',
+            betMin: 'Введите сумму от 1 F',
+            betMax: 'Максимальная ставка: ',
+            customBet: 'Своя',
+            settings: 'Настройки',
+            nickname: 'Никнейм',
+            nicknamePlaceholder: 'сменить',
+            resetStats: 'Сбросить статистику',
+            resetConfirm: 'Сбросить вашу статистику (количество круток)?',
+            resetDone: 'Статистика сброшена!',
+            resetCooldown: 'Сброс возможен раз в 24 часа. Попробуйте позже.',
+            adminPanel: 'Панель администратора',
+            dbStatus: 'База данных: ',
+            dbOk: 'подключена',
+            dbErr: 'недоступна',
+            dbNo: 'не подключена',
+            save: 'Сохранить',
+            close: 'Закрыть',
+            resultDaily: 'Поздравляем, Ваш результат:',
+            resultDonate: '💎 FORT wheel:',
+            share: 'Поделиться',
+            registerTitle: 'Спасибо за регистрацию!',
+            registerGift: 'Ты получил <strong style="color:var(--accent);font-size:1.2rem;">100 Fort</strong> в подарок 🎁',
+            registerDesc: 'Испытай удачу — крути колесо и выигрывай!<br><span style="opacity:0.7;">Удача любит смелых ✨</span>',
+            spinBtn: 'Крутить!',
+            faqTitle: 'FAQ — Частые вопросы',
+            fairTitle: '🔒 Проверка честности',
+            fairText: 'FORT wheel использует <b>предопределённый результат</b>:',
+            fairDesc: 'Результат определяется до начала вращения и не меняется во время анимации.',
+            spins: 'спинов',
+            spinsDiamond: 'спинов💎',
+            errorRead: 'Ошибка чтения базы данных. Проверьте подключение.',
+            errorSave: 'Ошибка: не удалось сохранить пользователя. Firebase недоступен.',
+            errorSpin: 'Ошибка: статистика не сохранена. Firebase недоступен.',
+            errorNick: 'Ник занят',
+            noDb: 'База данных не подключена',
+            loginNeeded: 'Войдите через Telegram',
+            langLabel: 'Язык',
+        },
+        en: {
+            slogan: '✨ FortuneFlip',
+            loginTitle: '🎡 FortuneFlip',
+            loginDesc: 'Log in via Telegram to continue',
+            modeDaily: '🎲',
+            modeDonate: '💎',
+            faqHow: 'Choose mode (🎲 — daily, 💎 — FORT wheel), set options and spin!',
+            noPlayers: 'No players yet',
+            friendPrompt: 'To see friends, allow access to your Telegram contacts.',
+            friendBtn: 'Allow access',
+            noFriends: 'Your friends haven\'t played yet',
+            balance: 'Top up FORT',
+            balanceMsg: 'Soon you can buy FORT with Telegram Stars or TON. For now, get 50 F for testing!',
+            balanceBtn: 'Get 50 F',
+            cancel: 'Cancel',
+            noFort: 'Not enough FORT',
+            addOptions: 'Add at least two options and fill them in.',
+            betMin: 'Enter amount from 1 F',
+            betMax: 'Max bet: ',
+            customBet: 'Custom',
+            settings: 'Settings',
+            nickname: 'Nickname',
+            nicknamePlaceholder: 'change',
+            resetStats: 'Reset stats',
+            resetConfirm: 'Reset your stats (spin count)?',
+            resetDone: 'Stats reset!',
+            resetCooldown: 'Reset is available once every 24 hours. Try later.',
+            adminPanel: 'Admin panel',
+            dbStatus: 'Database: ',
+            dbOk: 'connected',
+            dbErr: 'unavailable',
+            dbNo: 'not connected',
+            save: 'Save',
+            close: 'Close',
+            resultDaily: 'Congratulations, your result:',
+            resultDonate: '💎 FORT wheel:',
+            share: 'Share',
+            registerTitle: 'Thanks for registering!',
+            registerGift: 'You received <strong style="color:var(--accent);font-size:1.2rem;">100 Fort</strong> as a gift 🎁',
+            registerDesc: 'Try your luck — spin the wheel and win!<br><span style="opacity:0.7;">Fortune favors the bold ✨</span>',
+            spinBtn: 'Spin!',
+            faqTitle: 'FAQ — Frequently Asked Questions',
+            fairTitle: '🔒 Fairness check',
+            fairText: 'FORT wheel uses a <b>predetermined result</b>:',
+            fairDesc: 'The result is determined before the spin starts and does not change during animation.',
+            spins: 'spins',
+            spinsDiamond: 'spins💎',
+            errorRead: 'Database read error. Check connection.',
+            errorSave: 'Error: failed to save user. Firebase unavailable.',
+            errorSpin: 'Error: stats not saved. Firebase unavailable.',
+            errorNick: 'Nickname taken',
+            noDb: 'Database not connected',
+            loginNeeded: 'Log in via Telegram',
+            langLabel: 'Language',
+        }
+    };
+    function t(key) { return (I18N[lang] || I18N.ru)[key] || key; }
+    function detectLang() {
+        const saved = localStorage.getItem('lang');
+        if (saved) return saved;
+        const tgLang = (tg.initDataUnsafe?.user?.language_code || '').slice(0, 2);
+        if (tgLang === 'en' || tgLang === 'ru') return tgLang;
+        const navLang = (navigator.language || '').slice(0, 2);
+        if (navLang === 'en' || navLang === 'ru') return navLang;
+        return 'ru';
+    }
 
     const donateSectors = [
         { label: 'Lose', weight: 55, color: '#C62828' },
@@ -430,13 +558,14 @@
         nickDisplay.textContent = firstName;
         if (isAdmin) nickDisplay.classList.add('admin-nick');
         if (photoUrl) document.getElementById('userAvatar').src = photoUrl;
+        applyLang();
         if (db) {
             const userRef = db.ref('users/' + currentUserTelegramId);
             userRef.once('value').then(snap => {
                 if (!snap.exists()) {
                     userRef.set({ telegramId: currentUserTelegramId, firstName, username, photoUrl, nickname: firstName, spins: 0, spins_daily: 0, spins_donate: 0, fart: 100 })
                         .then(() => { fortBalance = 100; updateBalanceDisplay(); document.getElementById('welcomeModal').classList.add('active'); })
-                        .catch(err => { console.error('User create failed:', err); showAlert('Ошибка: не удалось сохранить пользователя. Firebase недоступен.'); });
+                        .catch(err => { console.error('User create failed:', err); showAlert(t('errorSave')); });
                 } else {
                     userRef.update({ firstName, username, photoUrl }).catch(err => console.error('User update failed:', err));
                     if (snap.val().spins && !snap.val().spins_daily) userRef.update({ spins_daily: snap.val().spins || 0, spins_donate: 0 });
@@ -452,7 +581,7 @@
                     }
                 });
                 loadAllUsers();
-            }).catch(err => { console.error('Firebase read error:', err); showAlert('Ошибка чтения базы данных. Проверьте подключение.'); });
+            }).catch(err => { console.error('Firebase read error:', err); showAlert(t('errorRead')); });
         }
         if (isAdmin) {
             document.getElementById('adminPanelBtn').style.display = 'block';
@@ -464,6 +593,66 @@
             document.getElementById('welcomeModal').classList.remove('active');
             document.querySelector('.mode-option[data-mode="donate"]').click();
         });
+    }
+
+    lang = detectLang();
+
+    function applyLang() {
+        document.querySelector('.login-screen h1').textContent = t('loginTitle');
+        document.querySelector('.login-screen p').textContent = t('loginDesc');
+        document.getElementById('slogan').textContent = t('slogan');
+        document.querySelectorAll('.mode-option[data-mode="daily"]').forEach(e => e.textContent = t('modeDaily'));
+        document.querySelectorAll('.mode-option[data-mode="donate"]').forEach(e => e.textContent = t('modeDonate'));
+        document.getElementById('faqBtn').textContent = '📖 ' + (lang === 'en' ? 'FAQ' : 'FAQ');
+        document.getElementById('fairnessBtn').textContent = '🔒 ' + (lang === 'en' ? 'Fairness' : 'Честность');
+        document.getElementById('faqModal').querySelector('h2').textContent = t('faqTitle');
+        document.getElementById('fairnessModal').querySelector('h2').textContent = t('fairTitle');
+        document.querySelector('#fairnessModal p:first-of-type').innerHTML = t('fairText');
+        document.querySelector('#fairnessModal p:last-of-type').textContent = t('fairDesc');
+        document.querySelector('#settingsModal h2').textContent = t('settings');
+        const nickLabels = document.querySelectorAll('#settingsModal label');
+        if (nickLabels.length) nickLabels[nickLabels.length - 1].textContent = t('nickname');
+        document.getElementById('nicknameInput').placeholder = t('nicknamePlaceholder');
+        document.getElementById('resetStatsBtn').textContent = t('resetStats');
+        document.getElementById('openAdminPanel').textContent = t('adminPanel');
+        document.getElementById('saveSettings').textContent = t('save');
+        document.getElementById('closeSettings').textContent = t('close');
+        const dbLabel = document.getElementById('dbStatus');
+        if (dbLabel) {
+            const label = dbLabel.getAttribute('data-label');
+            if (label) {
+                const prefix = document.createElement('span');
+                prefix.textContent = t(label) + ' ';
+                const child = dbLabel.querySelector('span');
+                if (child) {
+                    dbLabel.innerHTML = '';
+                    dbLabel.appendChild(prefix);
+                    dbLabel.appendChild(child);
+                    if (child.querySelector('.ok')) child.innerHTML = '<span class="ok">' + t('dbOk') + '</span>';
+                    else if (child.querySelector('.err')) child.innerHTML = '<span class="err">' + t('dbErr') + '</span>';
+                }
+            }
+        }
+        document.getElementById('welcomeModal').querySelector('h2').textContent = t('registerTitle');
+        document.getElementById('welcomeModal').querySelector('p').innerHTML = t('registerGift');
+        document.getElementById('welcomeModal').querySelectorAll('p')[1].innerHTML = t('registerDesc');
+        document.getElementById('welcomeOkBtn').textContent = t('spinBtn');
+        document.getElementById('customBetInput').placeholder = t('customBet');
+        document.getElementById('closeResultBtn').textContent = t('close');
+        document.getElementById('shareResultBtn').textContent = t('share');
+        // Admin modal
+        document.querySelector('#adminModal h2').textContent = t('adminPanel');
+        const adminClose = document.getElementById('closeAdminModal');
+        if (adminClose) adminClose.textContent = t('close');
+        // Tab labels
+        document.querySelectorAll('.tab-option[data-tab="world"]').forEach(e => e.textContent = lang === 'en' ? 'World' : 'Мир');
+        document.querySelectorAll('.tab-option[data-tab="friends"]').forEach(e => e.textContent = lang === 'en' ? 'Friends' : 'Друзья');
+        // Lang toggle in settings
+        const langRow = document.getElementById('langRow');
+        if (langRow) langRow.querySelector('.toggle-label').textContent = t('langLabel');
+        document.getElementById('langToggle').checked = (lang === 'en');
+        // Re-render leaderboard with new labels
+        renderLeaderboard();
     }
 
     const initData = tg.initDataUnsafe;
@@ -514,9 +703,9 @@
 
     document.getElementById('balanceBlock').addEventListener('click', () => {
         tg.showPopup({
-            title: 'Пополнение FORT',
-            message: 'Скоро можно будет купить FORT за Telegram Stars или TON. Пока дарим 50 F для теста!',
-            buttons: [{ type: 'default', text: 'Получить 50 F' }, { type: 'cancel', text: 'Отмена' }]
+            title: t('balance'),
+            message: t('balanceMsg'),
+            buttons: [{ type: 'default', text: t('balanceBtn') }, { type: 'cancel', text: t('cancel') }]
         }, (btnId) => {
             if (btnId === '0') { fortBalance += 50; updateBalanceDisplay(); if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance }); }
         });
@@ -531,8 +720,8 @@
     const MAX_BET = 10000;
     document.getElementById('setCustomBetBtn').addEventListener('click', () => {
         const val = parseInt(document.getElementById('customBetInput').value);
-        if (isNaN(val) || val < 1) { showAlert('Введите сумму от 1 F'); return; }
-        if (val > MAX_BET) { showAlert('Максимальная ставка: ' + MAX_BET + ' F'); return; }
+        if (isNaN(val) || val < 1) { showAlert(t('betMin')); return; }
+        if (val > MAX_BET) { showAlert(t('betMax') + MAX_BET + ' F'); return; }
         selectedBet = val; document.querySelectorAll('#betAmounts .bet-btn').forEach(b => b.classList.remove('selected'));
     });
 
@@ -545,7 +734,7 @@
         if (!dailyBonusUsed && fortBalance < selectedBet) {
             actualDonateBet = 10; isFreeSpin = true; dailyBonusUsed = true; localStorage.setItem('dailyBonusDate', today);
         } else {
-            if (fortBalance < selectedBet) { showAlert('Недостаточно FORT'); return; }
+            if (fortBalance < selectedBet) { showAlert(t('noFort')); return; }
             actualDonateBet = selectedBet; fortBalance -= actualDonateBet;
         }
         updateBalanceDisplay();
@@ -559,7 +748,7 @@
         const totalAngle = rotations * 2 * Math.PI + ((donateTarget - donateAngle + 2 * Math.PI) % (2 * Math.PI));
         donateDecay = 0.985 + Math.random() * 0.005;
         // Правильная формула: v0 = totalAngle * (1 - decay) — колесо натурально остановится на целе
-        donateVelocity = totalAngle * (1 - donateDecay);
+        donateVelocity = totalAngle * (1 - donateDecay) / donateDecay;
         isDonateSpinning = true; document.body.classList.add('spinning');
         donateAnimationId = requestAnimationFrame(donateSpinAnimation);
     });
@@ -607,7 +796,7 @@
             db.ref('users/' + currentUserTelegramId + '/spins_donate').transaction(v => (v || 0) + 1);
             db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1);
         }
-        document.getElementById('resultTitle').textContent = '💎 FORT wheel:';
+        document.getElementById('resultTitle').textContent = t('resultDonate');
         const net = sector.label === 'Lose' ? -(isFreeSpin ? 0 : actualDonateBet) : (win - (isFreeSpin ? 0 : actualDonateBet));
         document.getElementById('resultText').textContent = sector.label + ' (' + (net>=0?'+':'') + net + ' F)';
         document.getElementById('resultOverlay').classList.add('active');
@@ -624,10 +813,15 @@
             setTimeout(() => document.getElementById('donatePin').classList.remove('bump'), 100);
             playTickSound();
         }
-        // Останавливаемся, когда скорость упала ниже порога — сразу снап к точному целевому углу
-        if (Math.abs(donateVelocity) < 0.0008) {
+        // Фаза 1: естественное затухание до очень малой скорости
+        if (Math.abs(donateVelocity) > 0.00015) {
+            donateAnimationId = requestAnimationFrame(donateSpinAnimation);
+        } else {
+            // Фаза 2: мгновенный невидимый снап к точному целевому углу
+            donateAngle = donateTarget;
+            drawDonateWheel();
             finishDonateSpin();
-        } else { donateAnimationId = requestAnimationFrame(donateSpinAnimation); }
+        }
     }
 
     const canvas = document.getElementById('wheelCanvas');
@@ -695,7 +889,7 @@
     wheelContainer.addEventListener('click', () => {
         if (currentMode !== 'daily' || isSpinning) return;
         const filled = options.filter(o => o.label.trim() !== '');
-        if (filled.length < 2) { showAlert('Добавьте минимум два варианта и заполните их.'); return; }
+        if (filled.length < 2) { showAlert(t('addOptions')); return; }
         stopAnimation();
         currentAngle = Math.random() * 2 * Math.PI;
         isSpinning = true; document.body.classList.add('spinning');
@@ -725,7 +919,7 @@
                 }
                 if (result === '?') result = options[options.length-1].label || 'Пусто';
             }
-            document.getElementById('resultTitle').textContent = 'Поздравляем, Ваш результат:';
+            document.getElementById('resultTitle').textContent = t('resultDaily');
             document.getElementById('resultText').textContent = result;
             document.getElementById('resultOverlay').classList.add('active');
             playWinSound();
@@ -733,7 +927,7 @@
             if (db && options.length >= 2 && currentUserTelegramId) {
                 db.ref('users/' + currentUserTelegramId + '/spins_daily').transaction(v => (v || 0) + 1);
                 db.ref('users/' + currentUserTelegramId + '/spins').transaction(v => (v || 0) + 1, (err, committed) => {
-                    if (err) { console.error('Spin save failed:', err); showAlert('Ошибка: статистика не сохранена. Firebase недоступен.'); }
+                    if (err) { console.error('Spin save failed:', err); showAlert(t('errorSpin')); }
                 });
             }
             startIdleSpin();
@@ -883,10 +1077,10 @@
     function renderLeaderboard() {
         const c = document.getElementById('topListContainer'); c.innerHTML = '';
         if (currentTab === 'world') {
-            if (!allUsersData.length) c.innerHTML = '<div class="contact-prompt">Пока нет игроков</div>';
+            if (!allUsersData.length) c.innerHTML = '<div class="contact-prompt">' + t('noPlayers') + '</div>';
             else { allUsersData.slice(0,10).forEach((u,i) => c.appendChild(createPlayer(u, i+1))); appendCurrentUserRow(c); }
         } else {
-            if (!friendIds.size) c.innerHTML = '<div class="contact-prompt">Чтобы увидеть друзей, разрешите доступ к контактам Telegram.<br><br><button onclick="requestContacts()">Разрешить доступ</button></div>';
+            if (!friendIds.size) c.innerHTML = '<div class="contact-prompt">' + t('friendPrompt') + '<br><br><button onclick="requestContacts()">' + t('friendBtn') + '</button></div>';
             else {
                 const friends = allUsersData.filter(u => friendIds.has(u.telegramId));
                 if (!friends.length) c.innerHTML = '<div class="contact-prompt">Ваши друзья ещё не играли</div>';
@@ -908,9 +1102,9 @@
         const name = document.createElement('span'); name.className = 'player-name'; name.textContent = u.nickname || u.firstName || '—';
         const spins = document.createElement('span'); spins.className = 'player-spins';
         const spinCount = currentMode === 'daily' ? (u.spins_daily ?? u.spins ?? 0) : (u.spins_donate ?? 0);
-        const label = currentMode === 'daily' ? 'спинов' : 'спинов💎';
+        const label = currentMode === 'daily' ? t('spins') : t('spinsDiamond');
         spins.textContent = spinCount + ' ' + label;
-        const youBadge = document.createElement('span'); youBadge.className = 'you-badge'; youBadge.textContent = 'Вы';
+        const youBadge = document.createElement('span'); youBadge.className = 'you-badge'; youBadge.textContent = lang === 'en' ? 'You' : 'Вы';
         row.appendChild(posSpan); row.appendChild(img); row.appendChild(name); row.appendChild(spins); row.appendChild(youBadge);
         container.appendChild(row);
     }
@@ -924,7 +1118,8 @@
         img.alt = 'avatar';
         const name = document.createElement('span'); name.className = 'player-name'; name.textContent = u.nickname || u.firstName || '—';
         const spins = document.createElement('span'); spins.className = 'player-spins';
-        spins.textContent = (currentMode === 'daily' ? (u.spins_daily ?? u.spins ?? 0) : (u.spins_donate ?? 0)) + ' ' + (currentMode === 'daily' ? 'спинов' : 'спинов💎');
+        const label = currentMode === 'daily' ? t('spins') : t('spinsDiamond');
+        spins.textContent = (currentMode === 'daily' ? (u.spins_daily ?? u.spins ?? 0) : (u.spins_donate ?? 0)) + ' ' + label;
         div.appendChild(posSpan); div.appendChild(img); div.appendChild(name); div.appendChild(spins);
         return div;
     }
@@ -943,12 +1138,18 @@
     const settingsModal = document.getElementById('settingsModal');
     document.getElementById('openSettings').addEventListener('click', () => {
         settingsModal.classList.add('active');
+        applyLang();
         if (db && currentUserTelegramId) { db.ref('users/' + currentUserTelegramId).once('value').then(s => { if (s.val()) document.getElementById('nicknameInput').value = s.val().nickname || ''; }); }
         const vol = Math.round(globalVolume * 100);
         document.getElementById('volumeSlider').value = vol; document.getElementById('volumeSlider').style.setProperty('--vol-pct', vol + '%');
         document.getElementById('volumeValue').textContent = vol + '%';
         document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
         document.getElementById('muteBtn').classList.toggle('muted', muted);
+    });
+    document.getElementById('langToggle').addEventListener('change', function() {
+        lang = this.checked ? 'en' : 'ru';
+        localStorage.setItem('lang', lang);
+        applyLang();
     });
     document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.remove('active'));
     document.getElementById('volumeSlider').addEventListener('input', function() {
@@ -971,25 +1172,25 @@
     });
 
     document.getElementById('resetStatsBtn').addEventListener('click', async () => {
-        if (!currentUserTelegramId || !db) { showAlert('Недоступно'); return; }
+        if (!currentUserTelegramId || !db) { showAlert(t('noDb')); return; }
         const userRef = db.ref('users/' + currentUserTelegramId);
         const snap = await userRef.once('value');
         const data = snap.val() || {};
         const now = Date.now();
-        if (now - (data.lastReset || 0) < 24 * 3600 * 1000) { showAlert('Сброс возможен раз в 24 часа. Попробуйте позже.'); return; }
-        if (!confirm('Сбросить вашу статистику (количество круток)?')) return;
+        if (now - (data.lastReset || 0) < 24 * 3600 * 1000) { showAlert(t('resetCooldown')); return; }
+        if (!confirm(t('resetConfirm'))) return;
         await userRef.update({ spins: 0, spins_daily: 0, spins_donate: 0, fart: 100, lastReset: now });
-        fortBalance = 100; updateBalanceDisplay(); showAlert('Статистика сброшена!');
+        fortBalance = 100; updateBalanceDisplay(); showAlert(t('resetDone'));
         sortAndRenderLeaderboard();
     });
     document.getElementById('saveSettings').addEventListener('click', async () => {
-        if (!currentUserTelegramId) { showAlert('Войдите через Telegram'); return; }
-        if (!db) { showAlert('База данных не подключена'); return; }
+        if (!currentUserTelegramId) { showAlert(t('loginNeeded')); return; }
+        if (!db) { showAlert(t('noDb')); return; }
         const newNick = document.getElementById('nicknameInput').value.trim();
         if (newNick) {
             const snap = await db.ref('users').orderByChild('nickname').equalTo(newNick).once('value');
             let ok = true; snap.forEach(c => { if (c.key !== currentUserTelegramId) ok = false; });
-            if (!ok) { showAlert('Ник занят'); return; }
+            if (!ok) { showAlert(t('errorNick')); return; }
             await db.ref('users/' + currentUserTelegramId).update({ nickname: newNick });
             document.getElementById('userNickDisplay').textContent = newNick;
             if (isAdmin) document.getElementById('userNickDisplay').classList.add('admin-nick');
@@ -1075,8 +1276,6 @@
     function updateTime() { document.getElementById('localTime').textContent = new Date().toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' }); }
     setInterval(updateTime, 1000); updateTime();
 
-    document.getElementById('slogan').textContent = '✨ FortuneFlip';
-
     let donateIdleAnimationId = null;
     function startDonateIdle() {
         if (donateIdleAnimationId) cancelAnimationFrame(donateIdleAnimationId);
@@ -1091,6 +1290,7 @@
         options = []; renderOptions(); startIdleSpin();
         if (localStorage.getItem('volume')) globalVolume = parseInt(localStorage.getItem('volume')) / 100;
         if (localStorage.getItem('muted') === '1') muted = true;
+        applyLang();
     });
 </script>
 </body>
