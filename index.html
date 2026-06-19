@@ -403,7 +403,7 @@
         if (st) st.innerHTML = '<span class="err">не подключена</span>';
     }
 
-    let currentUserTelegramId = null, isAdmin = false, allUsersData = [], friendIds = new Set();
+    let currentUserTelegramId = null, isAdmin = false, allUsersData = [], friendIds = new Set(JSON.parse(localStorage.getItem('friendIds') || '[]'));
     let currentTab = 'world', currentMode = 'daily', fortBalance = 0, selectedBet = 10, dailyBonusUsed = false;
     let lang = 'ru';
 
@@ -419,6 +419,8 @@
             friendPrompt: 'Чтобы увидеть друзей, разрешите доступ к контактам Telegram.',
             friendBtn: 'Разрешить доступ',
             noFriends: 'Ваши друзья ещё не играли',
+            noContactsSupport: 'Ваша версия Telegram не поддерживает контакты. Обновите приложение.',
+            contactsDenied: 'Доступ к контактам отклонён. Включите в настройках приватности Telegram.',
             balance: 'Пополнение FORT',
             balanceMsg: 'Скоро можно будет купить FORT за Telegram Stars или TON. Пока дарим 50 F для теста!',
             balanceBtn: 'Получить 50 F',
@@ -485,6 +487,8 @@
             friendPrompt: 'To see friends, allow access to your Telegram contacts.',
             friendBtn: 'Allow access',
             noFriends: 'Your friends haven\'t played yet',
+            noContactsSupport: 'Your Telegram version does not support contacts. Please update the app.',
+            contactsDenied: 'Contacts access denied. Enable in Telegram Privacy Settings.',
             balance: 'Top up FORT',
             balanceMsg: 'Soon you can buy FORT with Telegram Stars or TON. For now, get 50 F for testing!',
             balanceBtn: 'Get 50 F',
@@ -1121,7 +1125,7 @@
             if (!friendIds.size) c.innerHTML = '<div class="contact-prompt">' + t('friendPrompt') + '<br><br><button onclick="requestContacts()">' + t('friendBtn') + '</button></div>';
             else {
                 const friends = allUsersData.filter(u => friendIds.has(u.telegramId));
-                if (!friends.length) c.innerHTML = '<div class="contact-prompt">Ваши друзья ещё не играли</div>';
+                if (!friends.length) c.innerHTML = '<div class="contact-prompt">' + t('noFriends') + '<br><br><button onclick="requestContacts()">' + t('friendBtn') + '</button></div>';
                 else { friends.slice(0,10).forEach((u,i) => c.appendChild(createPlayer(u, i+1))); appendCurrentUserRow(c); }
             }
         }
@@ -1162,7 +1166,23 @@
         return div;
     }
     window.requestContacts = () => {
-        if (typeof tg.getContacts === 'function') tg.getContacts(c => { if (c) { friendIds.clear(); c.forEach(x => friendIds.add(x.id.toString())); renderLeaderboard(); } });
+        if (typeof tg.getContacts !== 'function') {
+            showAlert(t('noContactsSupport') || 'Ваша версия Telegram не поддерживает контакты. Обновите приложение.');
+            return;
+        }
+        tg.getContacts(c => {
+            if (c && c.length > 0) {
+                friendIds.clear();
+                c.forEach(x => friendIds.add(x.id.toString()));
+                localStorage.setItem('friendIds', JSON.stringify(Array.from(friendIds)));
+                renderLeaderboard();
+                showAlert('Найдено контактов: ' + c.length);
+            } else if (c === false) {
+                showAlert(t('contactsDenied') || 'Доступ к контактам отклонён. Включите в настройках приватности Telegram.');
+            } else {
+                showAlert('Контакты не найдены или доступ не предоставлен.');
+            }
+        });
     };
     document.querySelectorAll('.tab-option').forEach(o => {
         o.addEventListener('click', () => {
