@@ -508,6 +508,7 @@
                 if (!isSpinning && !animationFrameId) startIdleSpin();
             }
             loadAllUsers();
+            sortAndRenderLeaderboard(); // мгновенно переключаем спины в топе
         });
     });
 
@@ -557,7 +558,8 @@
         const rotations = 5 + Math.random() * 3;
         const totalAngle = rotations * 2 * Math.PI + ((donateTarget - donateAngle + 2 * Math.PI) % (2 * Math.PI));
         donateDecay = 0.985 + Math.random() * 0.005;
-        donateVelocity = totalAngle * (1 - donateDecay) / donateDecay;
+        // Правильная формула: v0 = totalAngle * (1 - decay) — колесо натурально остановится на целе
+        donateVelocity = totalAngle * (1 - donateDecay);
         isDonateSpinning = true; document.body.classList.add('spinning');
         donateAnimationId = requestAnimationFrame(donateSpinAnimation);
     });
@@ -622,14 +624,9 @@
             setTimeout(() => document.getElementById('donatePin').classList.remove('bump'), 100);
             playTickSound();
         }
-        if (Math.abs(donateVelocity) < 0.001) {
-            if (Math.abs(donateAngle - donateTarget) < 0.02) {
-                finishDonateSpin();
-            } else {
-                donateAngle += (donateTarget - donateAngle) * 0.12; drawDonateWheel();
-                cancelAnimationFrame(donateAnimationId);
-                donateAnimationId = requestAnimationFrame(donateSpinAnimation);
-            }
+        // Останавливаемся, когда скорость упала ниже порога — сразу снап к точному целевому углу
+        if (Math.abs(donateVelocity) < 0.0008) {
+            finishDonateSpin();
         } else { donateAnimationId = requestAnimationFrame(donateSpinAnimation); }
     }
 
@@ -832,7 +829,16 @@
     let _usersListenerAttached = false;
 
     function loadAllUsers() {
-        if (!db || _usersListenerAttached) return;
+        if (!db) return;
+
+        // Кэш лидерборда (5 мин) — сразу показываем, не пусто
+        const cached = JSON.parse(localStorage.getItem('lb_cache') || '{}');
+        if (cached.users && Date.now() - cached.ts < 5 * 60 * 1000) {
+            allUsersData = cached.users;
+            sortAndRenderLeaderboard();
+        }
+
+        if (_usersListenerAttached) return;
         _usersListenerAttached = true;
 
         // 1) Однократная миграция старых юзеров: spins -> spins_daily, spins_donate = 0
@@ -854,10 +860,11 @@
         });
 
         // 2) Реалтайм-лидерборд: загружаем всех, сортируем по спинам на клиенте
-        // Лидерборд = топ-100 по спинам (в UI показываем топ-10)
         db.ref('users').on('value', snap => {
             allUsersData = [];
             if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
+            // Сохраняем кэш
+            localStorage.setItem('lb_cache', JSON.stringify({ ts: Date.now(), users: allUsersData.slice(0, 100) }));
             sortAndRenderLeaderboard();
         }, err => console.error('Leaderboard listen error:', err));
     }
