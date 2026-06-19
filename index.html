@@ -829,13 +829,37 @@
         o.start(); o.stop(audioCtx.currentTime+0.2);
     }
 
+    let _usersListenerAttached = false;
+
     function loadAllUsers() {
-        if (!db) return;
-        db.ref('users').limitToLast(100).once('value', snap => {
+        if (!db || _usersListenerAttached) return;
+        _usersListenerAttached = true;
+
+        // 1) Однократная миграция старых юзеров: spins -> spins_daily, spins_donate = 0
+        db.ref('users').once('value').then(snap => {
+            if (!snap.exists()) return;
+            const updates = {};
+            snap.forEach(child => {
+                const u = child.val();
+                if (u.spins !== undefined && u.spins_daily === undefined) {
+                    updates[child.key + '/spins_daily'] = u.spins;
+                    updates[child.key + '/spins_donate'] = 0;
+                } else if (u.spins_donate === undefined) {
+                    updates[child.key + '/spins_donate'] = 0;
+                }
+            });
+            if (Object.keys(updates).length) {
+                db.ref('users').update(updates).then(() => console.log('Migration done:', Object.keys(updates).length / 2, 'users'));
+            }
+        });
+
+        // 2) Реалтайм-лидерборд: загружаем всех, сортируем по спинам на клиенте
+        // Лидерборд = топ-100 по спинам (в UI показываем топ-10)
+        db.ref('users').on('value', snap => {
             allUsersData = [];
             if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
             sortAndRenderLeaderboard();
-        }, err => console.error('Leaderboard load error:', err));
+        }, err => console.error('Leaderboard listen error:', err));
     }
     function sortAndRenderLeaderboard() {
         const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
@@ -845,6 +869,8 @@
             const bv = b[sortField] ?? (fallbackField ? b[fallbackField] : 0) ?? 0;
             return bv - av;
         });
+        // Лидерборд = топ-100 по спинам
+        if (allUsersData.length > 100) allUsersData.length = 100;
         renderLeaderboard();
     }
     function renderLeaderboard() {
