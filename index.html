@@ -33,6 +33,7 @@
         .mode-option { flex: 1; text-align: center; padding: 10px 6px; font-weight: 600; font-size: 1.5rem; color: var(--muted-text); cursor: pointer; border-radius: 10px; transition: all 0.3s; z-index: 1; user-select: none; line-height: 1; }
         .mode-option.active { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(233,69,96,0.4); }
         .wheel-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .wheel-wrapper.limited .wheel-container { filter: grayscale(0.95) blur(6px) brightness(0.4); pointer-events: none; opacity: 0.4; transition: filter 0.4s, opacity 0.4s; }
         .wheel-container { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1; transition: transform 0.4s, filter 0.3s; z-index: 1; cursor: pointer; }
         body.spinning .wheel-container { transform: scale(1.35); z-index: 100; cursor: default; }
         .wheel-container:hover { transform: scale(1.06); }
@@ -43,6 +44,13 @@
         .pin.bump { animation: pinBump 0.12s ease-out; }
         @keyframes pinBump { 0% { transform: translateX(-50%) translateY(0); } 30% { transform: translateX(-50%) translateY(8px); } 60% { transform: translateX(-50%) translateY(-2px); } 100% { transform: translateX(-50%) translateY(0); } }
         .bet-panel { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; }
+        .bonus-card { width: 100%; max-width: 400px; background: linear-gradient(135deg, var(--accent), #ff7a8a); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); margin-top: 12px; animation: bonusPulse 2s ease-in-out infinite; }
+        .bonus-card .bonus-icon { font-size: 1.8rem; flex-shrink: 0; }
+        .bonus-card .bonus-text { flex: 1; color: #fff; font-weight: 700; font-size: 0.95rem; }
+        .bonus-card .bonus-btn { background: #fff; color: var(--accent); border: none; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; cursor: pointer; flex-shrink: 0; transition: transform 0.2s, box-shadow 0.2s; }
+        .bonus-card .bonus-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+        .bonus-card .bonus-btn:active { transform: scale(0.97); }
+        @keyframes bonusPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
         .bet-amounts { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; justify-content: center; align-items: center; }
         .bet-btn, .custom-bet-btn { padding: 10px 20px; border-radius: 30px; border: 2px solid var(--accent); background: transparent; color: var(--text); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 1rem; }
         .bet-btn.selected, .custom-bet-btn.selected { background: var(--accent); color: white; }
@@ -159,6 +167,42 @@
         .admin-panel .user-row .add-balance-row { display: flex; gap: 4px; margin-left: auto; }
         .admin-panel .user-row .add-balance-row input { width: 60px; padding: 2px 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.75rem; text-align: center; }
         .admin-panel .user-row .add-balance-row button { padding: 2px 8px; border-radius: 10px; border: none; background: #4caf50; color: white; font-size: 0.7rem; cursor: pointer; white-space: nowrap; }
+        .admin-panel .admin-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .admin-panel .admin-top h2 { margin: 0; font-size: 1.3rem; }
+        .admin-panel .admin-close { background: none; border: none; color: var(--muted-text); font-size: 1.5rem; cursor: pointer; padding: 0 6px; line-height: 1; transition: color 0.2s, transform 0.2s; }
+        .admin-panel .admin-close:hover { color: var(--accent); transform: scale(1.15); }
+        .admin-panel .admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+        .admin-panel .admin-stat-card { background: var(--input-bg); border-radius: 12px; padding: 10px 8px; text-align: center; }
+        .admin-panel .admin-stat-label { font-size: 0.7rem; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+        .admin-panel .admin-stat-value { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+        .admin-panel .admin-search-wrap { position: relative; margin-bottom: 12px; }
+        .admin-panel .admin-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted-text); font-size: 0.9rem; pointer-events: none; }
+        .admin-panel .admin-search-input { width: 100%; padding: 10px 14px 10px 34px; border-radius: 12px; border: 2px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 0.9rem; outline: none; transition: border 0.2s; box-sizing: border-box; }
+        .admin-panel .admin-search-input:focus { border-color: var(--accent); }
+        .admin-panel .admin-list { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+        .admin-panel .admin-user-card { background: var(--input-bg); border-radius: 12px; padding: 8px 12px; }
+        .admin-panel .admin-user-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .admin-panel .admin-user-name { font-weight: 600; font-size: 0.9rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-panel .admin-user-id { font-size: 0.7rem; color: var(--muted-text); }
+        .admin-panel .admin-user-stats { display: flex; gap: 8px; font-size: 0.75rem; color: var(--muted-text); margin-bottom: 8px; }
+        .admin-panel .admin-user-stats span { flex: 1; text-align: center; background: var(--surface); padding: 4px 6px; border-radius: 8px; }
+        .admin-panel .admin-user-stats b { color: var(--text); }
+        .admin-panel .admin-user-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .admin-panel .admin-btn { padding: 5px 10px; border-radius: 10px; border: none; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.15s; white-space: nowrap; }
+        .admin-panel .admin-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .admin-panel .admin-btn.danger { background: var(--accent); color: #fff; }
+        .admin-panel .admin-btn.success { background: #4caf50; color: #fff; }
+        .admin-panel .admin-add-input { width: 70px; padding: 5px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.78rem; text-align: center; outline: none; }
+        .admin-panel .admin-add-input:focus { border-color: var(--accent); }
+        .admin-panel .admin-empty { text-align: center; padding: 30px 20px; color: var(--muted-text); font-size: 0.9rem; }
+        .confirm-content { max-width: 360px; text-align: center; }
+        .confirm-content h2 { margin: 0 0 12px; font-size: 1.25rem; }
+        .confirm-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+        .confirm-btn { flex: 1; max-width: 140px; padding: 10px 18px; border: none; border-radius: 24px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s; }
+        .confirm-btn:hover { transform: scale(1.04); }
+        .confirm-btn.confirm-yes { background: #4caf50; color: #fff; }
+        .confirm-btn.confirm-yes.danger { background: var(--accent); }
+        .confirm-btn.confirm-no { background: var(--input-bg); color: var(--text); }
         .login-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); justify-content: center; align-items: center; z-index: 500; flex-direction: column; gap: 24px; padding: 20px; }
         .login-screen.active { display: flex; }
         body.login-active { overflow: hidden; }
@@ -226,6 +270,11 @@
                 <div class="pin" id="donatePin">
                     <svg viewBox="0 0 28 36"><path d="M14 36 C22 24 28 14 28 10 C28 4.5 21.7 0 14 0 C6.3 0 0 4.5 0 10 C0 14 6 24 14 36Z" /><circle cx="14" cy="12" r="4.5" fill="white" /><circle cx="14" cy="12" r="2" fill="#e0e0e0" /></svg>
                 </div>
+            </div>
+            <div class="bonus-card" id="bonusCard" style="display:none;">
+                <div class="bonus-icon">🎁</div>
+                <div class="bonus-text" id="bonusText">Daily бонус</div>
+                <button class="bonus-btn" id="claimBonusBtn">Забрать 10 F</button>
             </div>
             <div class="bet-panel">
                 <div class="bet-amounts" id="betAmounts">
@@ -363,11 +412,31 @@
 </div>
 <div class="modal" id="adminModal">
     <div class="modal-content admin-panel">
-        <h2>Админ-панель</h2>
-        <div style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"><div id="adminUserList"></div></div>
-        <div style="margin-top:10px;" data-label="adminTotalUsers"><strong>Всего пользователей:</strong> <span id="adminTotalUsers">0</span></div>
-        <div data-label="adminTotalSpins"><strong>Всего спинов:</strong> <span id="adminTotalSpins">0</span></div>
-        <button id="closeAdminModal" style="margin-top:15px;">Закрыть</button>
+        <div class="admin-top">
+            <h2 id="adminTitle">Панель администратора</h2>
+            <button class="admin-close" id="closeAdminModal" aria-label="Close">✕</button>
+        </div>
+        <div class="admin-stats">
+            <div class="admin-stat-card"><div class="admin-stat-label" id="adminTotalUsersLabel">Пользователей</div><div class="admin-stat-value" id="adminTotalUsers">0</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-label" id="adminTotalSpinsLabel">Спинов</div><div class="admin-stat-value" id="adminTotalSpins">0</div></div>
+            <div class="admin-stat-card"><div class="admin-stat-label" id="adminTotalFartLabel">FORT в обороте</div><div class="admin-stat-value" id="adminTotalFart">0</div></div>
+        </div>
+        <div class="admin-search-wrap">
+            <span class="admin-search-icon">🔍</span>
+            <input type="text" id="adminSearchInput" class="admin-search-input" placeholder="Поиск по имени или ID" autocomplete="off">
+        </div>
+        <div class="admin-list" id="adminUserList"></div>
+    </div>
+</div>
+
+<div class="modal" id="confirmModal">
+    <div class="modal-content confirm-content">
+        <h2 id="confirmTitle">Подтверждение</h2>
+        <p id="confirmMessage" style="color:var(--muted-text);line-height:1.5;margin-bottom:20px;text-align:center;"></p>
+        <div class="confirm-actions">
+            <button id="confirmYesBtn" class="confirm-btn confirm-yes">Подтвердить</button>
+            <button id="confirmNoBtn" class="confirm-btn confirm-no">Отмена</button>
+        </div>
     </div>
 </div>
 
@@ -416,6 +485,9 @@
     let currentUserTelegramId = null, isAdmin = false, allUsersData = [], friendIds = new Set(JSON.parse(localStorage.getItem('friendIds') || '[]'));
     let currentTab = 'world', currentMode = 'daily', fortBalance = 0, fortBalanceDisplayed = 0, balanceInitialized = false, selectedBet = 10, dailyBonusUsed = false;
     let balanceAnimId = null;
+    let lastSpinTime = 0;
+    const SPIN_COOLDOWN_MS = 1000;
+    const DAILY_SPIN_LIMIT = 15;
     let lang = 'ru';
 
     const I18N = {
@@ -489,20 +561,29 @@
             closeFairnessBtn: 'Закрыть',
             shareDaily: '🎉 Мне выпало: {result}\nПопробуй и ты: @Fortunef3sBot',
             shareDonate: '💎 FORT wheel: {result} ({net} F)\nИспытай удачу: @Fortunef3sBot',
+            dailyBonus: 'Ежедневный бонус',
+            claimBonus: 'Забрать 10 F',
+            bonusClaimed: '+10 F зачислено!',
             adminTotalUsers: 'Всего пользователей:',
             adminTotalSpins: 'Всего спинов:',
+            adminTotalFart: 'FORT в обороте:',
             adminNoUsers: 'Нет пользователей',
+            adminNoSearch: 'Никого не найдено',
+            adminSearchPlaceholder: 'Поиск по имени или ID',
             adminColName: 'Имя',
             adminColId: 'ID',
             adminColDaily: 'Daily',
-            adminColDonate: '💎',
+            adminColDonate: 'FORT',
             adminColTotal: 'Всего',
             adminColBalance: 'Баланс',
-            adminResetSpins: 'Спины',
-            adminResetBalance: 'Баланс',
-            adminAddBtn: '+',
+            adminResetSpins: 'Сбросить спины',
+            adminResetBalance: 'Обнулить',
+            adminAddBtn: 'Добавить',
             adminAddPlaceholder: 'F',
             adminAddInvalid: 'Введите сумму от 1 F',
+            adminConfirmTitle: 'Подтверждение',
+            adminConfirmYes: 'Подтвердить',
+            adminConfirmNo: 'Отмена',
             confirmResetSpins: 'Сбросить спины пользователю {name}?',
             confirmResetBalance: 'Сбросить баланс пользователю {name}?',
             confirmAdd: 'Добавить {val} F пользователю {name}?',
@@ -595,20 +676,29 @@
             tabFriends: 'Friends',
             shareDaily: '🎉 I got: {result}\nTry it too: @Fortunef3sBot',
             shareDonate: '💎 FORT wheel: {result} ({net} F)\nTry your luck: @Fortunef3sBot',
+            dailyBonus: 'Daily bonus',
+            claimBonus: 'Claim 10 F',
+            bonusClaimed: '+10 F credited!',
             adminTotalUsers: 'Total users:',
             adminTotalSpins: 'Total spins:',
+            adminTotalFart: 'FORT in circulation:',
             adminNoUsers: 'No users',
+            adminNoSearch: 'No matches found',
+            adminSearchPlaceholder: 'Search by name or ID',
             adminColName: 'Name',
             adminColId: 'ID',
             adminColDaily: 'Daily',
-            adminColDonate: '💎',
+            adminColDonate: 'FORT',
             adminColTotal: 'Total',
             adminColBalance: 'Balance',
-            adminResetSpins: 'Spins',
-            adminResetBalance: 'Balance',
-            adminAddBtn: '+',
+            adminResetSpins: 'Reset spins',
+            adminResetBalance: 'Reset',
+            adminAddBtn: 'Add',
             adminAddPlaceholder: 'F',
             adminAddInvalid: 'Enter amount from 1 F',
+            adminConfirmTitle: 'Confirm',
+            adminConfirmYes: 'Confirm',
+            adminConfirmNo: 'Cancel',
             confirmResetSpins: 'Reset spins for user {name}?',
             confirmResetBalance: 'Reset balance for user {name}?',
             confirmAdd: 'Add {val} F to user {name}?',
@@ -706,8 +796,19 @@
         if (isAdmin) {
             document.getElementById('adminPanelBtn').style.display = 'block';
             document.getElementById('dbStatus').style.display = 'block';
-            document.getElementById('openAdminPanel').addEventListener('click', () => { renderAdminPanel(); document.getElementById('adminModal').classList.add('active'); });
+            document.getElementById('openAdminPanel').addEventListener('click', () => {
+                const searchInput = document.getElementById('adminSearchInput');
+                if (searchInput) searchInput.value = '';
+                renderAdminPanel();
+                document.getElementById('adminModal').classList.add('active');
+            });
             document.getElementById('closeAdminModal').addEventListener('click', () => { document.getElementById('adminModal').classList.remove('active'); });
+            const adminSearchInput = document.getElementById('adminSearchInput');
+            if (adminSearchInput) {
+                adminSearchInput.addEventListener('input', () => {
+                    if (document.getElementById('adminModal').classList.contains('active')) renderAdminPanel();
+                });
+            }
         }
         document.getElementById('welcomeOkBtn').addEventListener('click', () => {
             document.getElementById('welcomeModal').classList.remove('active');
@@ -764,13 +865,16 @@
         document.getElementById('closeFairnessBtn').textContent = t('closeFairnessBtn');
         renderFaqContent();
         // Admin modal
-        document.querySelector('#adminModal h2').textContent = t('adminPanel');
-        const adminClose = document.getElementById('closeAdminModal');
-        if (adminClose) adminClose.textContent = t('close');
-        const adminTotalUsersLabel = document.querySelector('#adminModal [data-label="adminTotalUsers"]');
-        if (adminTotalUsersLabel) adminTotalUsersLabel.firstChild.textContent = t('adminTotalUsers') + ' ';
-        const adminTotalSpinsLabel = document.querySelector('#adminModal [data-label="adminTotalSpins"]');
-        if (adminTotalSpinsLabel) adminTotalSpinsLabel.firstChild.textContent = t('adminTotalSpins') + ' ';
+        const adminTitle = document.getElementById('adminTitle');
+        if (adminTitle) adminTitle.textContent = t('adminPanel');
+        const adminTotalUsersLabel = document.getElementById('adminTotalUsersLabel');
+        if (adminTotalUsersLabel) adminTotalUsersLabel.textContent = t('adminTotalUsers').replace(/:$/, '').trim();
+        const adminTotalSpinsLabel = document.getElementById('adminTotalSpinsLabel');
+        if (adminTotalSpinsLabel) adminTotalSpinsLabel.textContent = t('adminTotalSpins').replace(/:$/, '').trim();
+        const adminTotalFartLabel = document.getElementById('adminTotalFartLabel');
+        if (adminTotalFartLabel) adminTotalFartLabel.textContent = t('adminTotalFart').replace(/:$/, '').trim();
+        const adminSearchInput = document.getElementById('adminSearchInput');
+        if (adminSearchInput) adminSearchInput.placeholder = t('adminSearchPlaceholder');
         // Daily page elements
         document.querySelector('.chance-toggle .toggle-label').textContent = t('chances');
         document.querySelector('.fast-spin-toggle .toggle-label').textContent = t('fastSpin');
@@ -791,6 +895,8 @@
         renderLeaderboard();
         const adminModal = document.getElementById('adminModal');
         if (adminModal && adminModal.classList.contains('active')) renderAdminPanel();
+        updateBonusCard();
+        updateDailyLimitVisual();
     }
 
     function renderFaqContent() {
@@ -882,15 +988,66 @@
                 stopAnimation(); isSpinning = false;
                 stopDonateAnimation(); stopDonateIdle();
                 donateAngle = 0; drawDonateWheel(); startDonateIdle();
+                updateBonusCard();
             } else {
                 document.body.classList.remove('donate-mode');
                 stopDonateAnimation(); stopDonateIdle();
                 if (!isSpinning && !animationFrameId) startIdleSpin();
+                updateDailyLimitVisual();
             }
             loadAllUsers();
             sortAndRenderLeaderboard(); // мгновенно переключаем спины в топе
         });
     });
+
+    function getDailySpinInfo() {
+        const today = new Date().toDateString();
+        const savedDate = localStorage.getItem('dailySpinDate');
+        if (savedDate !== today) return { date: today, count: 0, limitReached: false };
+        const count = parseInt(localStorage.getItem('dailySpinCount') || '0', 10);
+        return { date: today, count, limitReached: count >= DAILY_SPIN_LIMIT };
+    }
+    function canSpinDaily() {
+        const info = getDailySpinInfo();
+        return !info.limitReached;
+    }
+    function consumeDailySpin() {
+        const info = getDailySpinInfo();
+        localStorage.setItem('dailySpinDate', info.date);
+        localStorage.setItem('dailySpinCount', info.count + 1);
+        updateDailyLimitVisual();
+    }
+    function updateDailyLimitVisual() {
+        const wrapper = document.querySelector('#dailyContent .wheel-wrapper');
+        if (!wrapper) return;
+        const reached = !isAdmin && !canSpinDaily();
+        wrapper.classList.toggle('limited', reached);
+    }
+
+    function updateBonusCard() {
+        const card = document.getElementById('bonusCard');
+        if (!card) return;
+        const today = new Date().toDateString();
+        dailyBonusUsed = (localStorage.getItem('dailyBonusDate') === today);
+        const shouldShow = !isAdmin && !dailyBonusUsed && currentMode === 'donate';
+        card.style.display = shouldShow ? 'flex' : 'none';
+        document.getElementById('bonusText').textContent = t('dailyBonus');
+        document.getElementById('claimBonusBtn').textContent = t('claimBonus');
+    }
+
+    function claimBonus() {
+        const today = new Date().toDateString();
+        fortBalance += 10;
+        dailyBonusUsed = true;
+        localStorage.setItem('dailyBonusDate', today);
+        updateBalanceDisplay();
+        if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
+        hapticNotify('success');
+        toast(t('bonusClaimed'));
+        updateBonusCard();
+    }
+
+    document.getElementById('claimBonusBtn').addEventListener('click', claimBonus);
 
     document.getElementById('balanceBlock').addEventListener('click', () => {
         tg.showPopup({
@@ -919,15 +1076,12 @@
     let actualDonateBet = 10, isFreeSpin = false, donateWinner = 0, donateTarget = 0;
     document.getElementById('donateWheelContainer').addEventListener('click', () => {
         if (isDonateSpinning) return;
+        const now = Date.now();
+        if (now - lastSpinTime < SPIN_COOLDOWN_MS) return;
+        lastSpinTime = now;
         isFreeSpin = false;
-        const today = new Date().toDateString();
-        if (localStorage.getItem('dailyBonusDate') !== today) dailyBonusUsed = false;
-        if (!dailyBonusUsed && fortBalance < selectedBet) {
-            actualDonateBet = 10; isFreeSpin = true; dailyBonusUsed = true; localStorage.setItem('dailyBonusDate', today);
-        } else {
-            if (fortBalance < selectedBet) { showAlert(t('noFort')); return; }
-            actualDonateBet = selectedBet; fortBalance -= actualDonateBet;
-        }
+        if (fortBalance < selectedBet) { showAlert(t('noFort')); return; }
+        actualDonateBet = selectedBet; fortBalance -= actualDonateBet;
         updateBalanceDisplay();
         if (db && currentUserTelegramId) db.ref('users/' + currentUserTelegramId).update({ fart: fortBalance });
         stopDonateAnimation();
@@ -938,7 +1092,6 @@
         const rotations = 5 + Math.random() * 3;
         const totalAngle = rotations * 2 * Math.PI + ((donateTarget - donateAngle + 2 * Math.PI) % (2 * Math.PI));
         donateDecay = 0.985 + Math.random() * 0.005;
-        // Правильная формула: v0 = totalAngle * (1 - decay) — колесо натурально остановится на целе
         donateVelocity = totalAngle * (1 - donateDecay);
         isDonateSpinning = true; document.body.classList.add('spinning');
         haptic('medium');
@@ -1086,8 +1239,13 @@
 
     wheelContainer.addEventListener('click', () => {
         if (currentMode !== 'daily' || isSpinning) return;
+        const now = Date.now();
+        if (now - lastSpinTime < SPIN_COOLDOWN_MS) return;
+        lastSpinTime = now;
         const filled = options.filter(o => o.label.trim() !== '');
         if (filled.length < 2) { showAlert(t('addOptions')); return; }
+        if (!isAdmin && !canSpinDaily()) return;
+        consumeDailySpin();
         stopAnimation();
         currentAngle = Math.random() * 2 * Math.PI;
         isSpinning = true; document.body.classList.add('spinning');
@@ -1167,7 +1325,11 @@
         drawWheel();
     }
     document.getElementById('addOptionBtn').addEventListener('click', () => { options.push({ label: '', weight: 1 }); renderOptions(); });
-    document.getElementById('clearAllBtn').addEventListener('click', () => { if (options.length && confirm(t('clearAllConfirm'))) { options = []; renderOptions(); } });
+    document.getElementById('clearAllBtn').addEventListener('click', async () => {
+        if (!options.length) return;
+        const ok = await confirmModal(t('clearAllConfirm'), true);
+        if (ok) { options = []; renderOptions(); }
+    });
 
     const massAddModal = document.getElementById('massAddModal');
     document.getElementById('massAddBtn').addEventListener('click', () => massAddModal.classList.add('active'));
@@ -1190,7 +1352,7 @@
             const load = document.createElement('button'); load.textContent = 'Загрузить';
             load.onclick = () => { options = p.options.map(o => ({...o})); renderOptions(); presetsModal.classList.remove('active'); }; li.appendChild(load);
             const del = document.createElement('button'); del.textContent = 'Удалить';
-            del.onclick = () => { if (confirm(`Удалить пресет "${p.name}"?`)) { const up = getPresets().filter((_, j) => j !== i); savePresets(up); renderPresetsList(); } }; li.appendChild(del);
+            del.onclick = async () => { const ok = await confirmModal(`Удалить пресет "${p.name}"?`, true); if (ok) { const up = getPresets().filter((_, j) => j !== i); savePresets(up); renderPresetsList(); } }; li.appendChild(del);
             list.appendChild(li);
         });
     }
@@ -1394,7 +1556,8 @@
         const data = snap.val() || {};
         const now = Date.now();
         if (now - (data.lastReset || 0) < 24 * 3600 * 1000) { showAlert(t('resetCooldown')); return; }
-        if (!confirm(t('resetConfirm'))) return;
+        const ok = await confirmModal(t('resetConfirm'), true);
+        if (!ok) return;
         await userRef.update({ spins: 0, spins_daily: 0, spins_donate: 0, fart: 100, lastReset: now });
         fortBalance = 100; updateBalanceDisplay(); showAlert(t('resetDone'));
         sortAndRenderLeaderboard();
@@ -1417,57 +1580,132 @@
     function renderAdminPanel() {
         if (!isAdmin) return;
         const container = document.getElementById('adminUserList');
-        let totalSpins = 0; container.innerHTML = '';
-        if (allUsersData.length === 0) {
-            container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted-text);">' + t('adminNoUsers') + '</div>';
-            document.getElementById('adminTotalUsers').textContent = '0'; document.getElementById('adminTotalSpins').textContent = '0'; return;
-        }
-        const header = document.createElement('div'); header.className = 'admin-header';
-        header.innerHTML = '<span>' + t('adminColName') + '</span><span class="admin-id">' + t('adminColId') + '</span><span class="admin-stat">' + t('adminColDaily') + '</span><span class="admin-stat">' + t('adminColDonate') + '</span><span class="admin-stat">' + t('adminColTotal') + '</span><span class="admin-stat">' + t('adminColBalance') + '</span><span class="admin-actions"></span>';
-        container.appendChild(header);
+        let totalSpins = 0, totalFart = 0;
+        container.innerHTML = '';
         allUsersData.forEach(u => {
             totalSpins += ((u.spins_daily || 0) + (u.spins_donate || 0));
-            const row = document.createElement('div'); row.className = 'user-row';
-            const name = document.createElement('span'); name.className = 'admin-name'; name.textContent = u.nickname || u.firstName || '—';
-            const id = document.createElement('span'); id.className = 'admin-id'; id.textContent = u.telegramId || '—';
-            const dailyStat = document.createElement('span'); dailyStat.className = 'admin-stat'; dailyStat.textContent = u.spins_daily || 0;
-            const donateStat = document.createElement('span'); donateStat.className = 'admin-stat'; donateStat.textContent = u.spins_donate || 0;
-            const spinsStat = document.createElement('span'); spinsStat.className = 'admin-stat'; spinsStat.textContent = u.spins || 0;
-            const balStat = document.createElement('span'); balStat.className = 'admin-stat'; balStat.textContent = (u.fart || 0) + ' F';
-            const actions = document.createElement('div'); actions.className = 'admin-actions';
-            const resetSpins = document.createElement('button'); resetSpins.className = 'reset-spins'; resetSpins.textContent = t('adminResetSpins');
-            const userId = u.telegramId || u.id;
-            const userName = u.nickname || u.firstName || '—';
-            resetSpins.addEventListener('click', async () => {
-                if (!confirm(formatI18n('confirmResetSpins', { name: userName }))) return;
-                await db.ref('users/' + userId).update({ spins: 0 }); toast(t('toastSpinsReset')); sortAndRenderLeaderboard();
-            });
-            const resetBal = document.createElement('button'); resetBal.className = 'reset-balance'; resetBal.textContent = t('adminResetBalance');
-            resetBal.addEventListener('click', async () => {
-                if (!confirm(formatI18n('confirmResetBalance', { name: userName }))) return;
-                await db.ref('users/' + userId).update({ fart: 0 }); toast(t('toastBalanceReset')); sortAndRenderLeaderboard();
-            });
-            const addRow = document.createElement('div'); addRow.className = 'add-balance-row';
-            const addInput = document.createElement('input'); addInput.type = 'number'; addInput.min = '1'; addInput.placeholder = t('adminAddPlaceholder');
-            const addBtn = document.createElement('button'); addBtn.textContent = t('adminAddBtn');
-            addBtn.addEventListener('click', async () => {
-                const val = parseInt(addInput.value);
-                if (isNaN(val) || val < 1) { showAlert(t('adminAddInvalid')); return; }
-                if (!confirm(formatI18n('confirmAdd', { val, name: userName }))) return;
-                try {
-                    const snap = await db.ref('users/' + userId + '/fart').once('value');
-                    const current = snap.val() || 0;
-                    await db.ref('users/' + userId).update({ fart: current + val });
-                    toast(formatI18n('toastBalanceAdded', { val })); addInput.value = ''; sortAndRenderLeaderboard();
-                } catch (e) { toast(formatI18n('toastError', { msg: e.message })); }
-            });
-            addRow.appendChild(addInput); addRow.appendChild(addBtn);
-            actions.appendChild(resetSpins); actions.appendChild(resetBal); actions.appendChild(addRow);
-            row.appendChild(name); row.appendChild(id); row.appendChild(dailyStat); row.appendChild(donateStat); row.appendChild(spinsStat); row.appendChild(balStat); row.appendChild(actions);
-            container.appendChild(row);
+            totalFart += (u.fart || 0);
         });
         document.getElementById('adminTotalUsers').textContent = allUsersData.length;
         document.getElementById('adminTotalSpins').textContent = totalSpins;
+        document.getElementById('adminTotalFart').textContent = totalFart + ' F';
+        if (allUsersData.length === 0) {
+            container.innerHTML = '<div class="admin-empty">' + t('adminNoUsers') + '</div>';
+            return;
+        }
+        const sorted = [...allUsersData].sort((a, b) => {
+            const aTotal = (a.spins_daily || 0) + (a.spins_donate || 0);
+            const bTotal = (b.spins_daily || 0) + (b.spins_donate || 0);
+            return bTotal - aTotal;
+        });
+        const query = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
+        const list = query ? sorted.filter(u => {
+            const name = (u.nickname || u.firstName || '').toLowerCase();
+            const id = (u.telegramId || u.id || '').toString().toLowerCase();
+            return name.includes(query) || id.includes(query);
+        }) : sorted.slice(0, 10);
+        if (list.length === 0) {
+            container.innerHTML = '<div class="admin-empty">' + t('adminNoSearch') + '</div>';
+            return;
+        }
+        list.forEach(u => container.appendChild(buildAdminUserCard(u)));
+    }
+
+    function buildAdminUserCard(u) {
+        const card = document.createElement('div'); card.className = 'admin-user-card';
+        const userId = u.telegramId || u.id;
+        const userName = u.nickname || u.firstName || '—';
+        const daily = u.spins_daily || 0;
+        const donate = u.spins_donate || 0;
+        const total = daily + donate;
+        const balance = u.fart || 0;
+        const head = document.createElement('div'); head.className = 'admin-user-head';
+        const nameEl = document.createElement('div'); nameEl.className = 'admin-user-name'; nameEl.textContent = userName;
+        const idEl = document.createElement('div'); idEl.className = 'admin-user-id'; idEl.textContent = 'ID: ' + (u.telegramId || '—');
+        head.appendChild(nameEl); head.appendChild(idEl);
+        const stats = document.createElement('div'); stats.className = 'admin-user-stats';
+        stats.innerHTML = '<span>' + t('adminColDaily') + ': <b>' + daily + '</b></span><span>' + t('adminColDonate') + ': <b>' + donate + '</b></span><span>' + t('adminColBalance') + ': <b>' + balance + ' F</b></span>';
+        const actions = document.createElement('div'); actions.className = 'admin-user-actions';
+        const resetSpinsBtn = document.createElement('button'); resetSpinsBtn.className = 'admin-btn danger'; resetSpinsBtn.textContent = t('adminResetSpins');
+        resetSpinsBtn.addEventListener('click', async () => {
+            const ok = await confirmModal(formatI18n('confirmResetSpins', { name: userName }), true);
+            if (!ok) return;
+            try {
+                await db.ref('users/' + userId).update({ spins_daily: 0, spins_donate: 0 });
+                toast(t('toastSpinsReset'));
+                renderAdminPanel();
+                sortAndRenderLeaderboard();
+            } catch (e) { toast(formatI18n('toastError', { msg: e.message })); }
+        });
+        const resetBalBtn = document.createElement('button'); resetBalBtn.className = 'admin-btn danger'; resetBalBtn.textContent = t('adminResetBalance');
+        resetBalBtn.addEventListener('click', async () => {
+            const ok = await confirmModal(formatI18n('confirmResetBalance', { name: userName }), true);
+            if (!ok) return;
+            try {
+                await db.ref('users/' + userId).update({ fart: 0 });
+                toast(t('toastBalanceReset'));
+                renderAdminPanel();
+                sortAndRenderLeaderboard();
+            } catch (e) { toast(formatI18n('toastError', { msg: e.message })); }
+        });
+        const addInput = document.createElement('input'); addInput.type = 'number'; addInput.min = '1'; addInput.placeholder = t('adminAddPlaceholder'); addInput.className = 'admin-add-input';
+        const addBtn = document.createElement('button'); addBtn.className = 'admin-btn success'; addBtn.textContent = t('adminAddBtn');
+        addBtn.addEventListener('click', async () => {
+            const val = parseInt(addInput.value);
+            if (isNaN(val) || val < 1) { showAlert(t('adminAddInvalid')); return; }
+            const ok = await confirmModal(formatI18n('confirmAdd', { val, name: userName }), false);
+            if (!ok) return;
+            try {
+                const snap = await db.ref('users/' + userId + '/fart').once('value');
+                const current = snap.val() || 0;
+                await db.ref('users/' + userId).update({ fart: current + val });
+                toast(formatI18n('toastBalanceAdded', { val }));
+                addInput.value = '';
+                renderAdminPanel();
+                sortAndRenderLeaderboard();
+            } catch (e) { toast(formatI18n('toastError', { msg: e.message })); }
+        });
+        addInput.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click(); });
+        actions.appendChild(resetSpinsBtn);
+        actions.appendChild(resetBalBtn);
+        actions.appendChild(addInput);
+        actions.appendChild(addBtn);
+        card.appendChild(head);
+        card.appendChild(stats);
+        card.appendChild(actions);
+        return card;
+    }
+
+    function confirmModal(message, danger = false) {
+        return new Promise(resolve => {
+            const modal = document.getElementById('confirmModal');
+            const msg = document.getElementById('confirmMessage');
+            const yes = document.getElementById('confirmYesBtn');
+            const no = document.getElementById('confirmNoBtn');
+            const title = document.getElementById('confirmTitle');
+            msg.textContent = message;
+            title.textContent = t('adminConfirmTitle');
+            yes.textContent = t('adminConfirmYes');
+            no.textContent = t('adminConfirmNo');
+            yes.classList.toggle('danger', !!danger);
+            const cleanup = (result) => {
+                modal.classList.remove('active');
+                yes.removeEventListener('click', onYes);
+                no.removeEventListener('click', onNo);
+                modal.removeEventListener('click', onBackdrop);
+                document.removeEventListener('keydown', onKey);
+                resolve(result);
+            };
+            const onYes = () => cleanup(true);
+            const onNo = () => cleanup(false);
+            const onBackdrop = (e) => { if (e.target === modal) cleanup(false); };
+            const onKey = (e) => { if (e.key === 'Escape') cleanup(false); };
+            yes.addEventListener('click', onYes);
+            no.addEventListener('click', onNo);
+            modal.addEventListener('click', onBackdrop);
+            document.addEventListener('keydown', onKey);
+            modal.classList.add('active');
+        });
     }
 
     document.getElementById('faqBtn').addEventListener('click', () => document.getElementById('faqModal').classList.add('active'));
@@ -1490,7 +1728,10 @@
     if (tg.themeParams) setTheme(tg.themeParams.bg_color !== '#18222d');
     tg.onEvent('themeChanged', () => { if (tg.themeParams) setTheme(tg.themeParams.bg_color !== '#18222d'); });
 
-    function updateTime() { document.getElementById('localTime').textContent = new Date().toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' }); }
+    function updateTime() {
+        document.getElementById('localTime').textContent = new Date().toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+        updateDailyLimitVisual();
+    }
     setInterval(updateTime, 1000); updateTime();
 
     let donateIdleAnimationId = null;
@@ -1508,6 +1749,8 @@
         if (localStorage.getItem('volume')) globalVolume = parseInt(localStorage.getItem('volume')) / 100;
         if (localStorage.getItem('muted') === '1') muted = true;
         applyLang();
+        updateBonusCard();
+        updateDailyLimitVisual();
     });
 </script>
 </body>
