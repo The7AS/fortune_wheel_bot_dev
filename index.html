@@ -467,7 +467,7 @@
     }
 
     // Stage 4c: URL of the Cloudflare Worker (D1-backed). Set to '' to bypass.
-    const WORKER_URL = 'https://fortuneflip-proxy.https://fortuneflip-proxy.alex-alpatov-01.workers.dev;
+    const WORKER_URL = 'https://fortuneflip-proxy.alex-alpatov-01.workers.dev';
 
     // Stage 4: generic Worker call. Returns parsed JSON on success, throws on error.
     async function apiCall(path, body) {
@@ -1705,8 +1705,9 @@
     document.getElementById('openSettings').addEventListener('click', () => {
         settingsModal.classList.add('active');
         applyLang();
-        if (db && currentUserTelegramId) { db.ref('users/' + currentUserTelegramId).once('value').then(s => { if (s.val()) document.getElementById('nicknameInput').value = s.val().nickname || ''; refreshNickHint(); }); }
-        else refreshNickHint();
+        // Stage 4c: nickname is already in currentUserNick (synced via /api/auth and polling)
+        if (currentUserNick) document.getElementById('nicknameInput').value = currentUserNick;
+        refreshNickHint();
         const vol = Math.round(globalVolume * 100);
         document.getElementById('volumeSlider').value = vol; document.getElementById('volumeSlider').style.setProperty('--vol-pct', vol + '%');
         document.getElementById('volumeValue').textContent = vol + '%';
@@ -1744,16 +1745,7 @@
 
     document.getElementById('resetStatsBtn').addEventListener('click', async () => {
         if (!currentUserTelegramId) { showAlert(t('loginNeeded')); return; }
-        // Stage 4: server is source of truth for reset cooldown
-        let cooldownOk = true;
-        if (db) {
-            const snap = await db.ref('users/' + currentUserTelegramId + '/lastReset').once('value');
-            const last = snap.val() || 0;
-            if (Date.now() - last < 24 * 3600 * 1000) {
-                showAlert(t('resetCooldown'));
-                return;
-            }
-        }
+        // Stage 4c: server (D1) is the source of truth for reset cooldown — no client check needed
         const ok = await confirmModal(t('resetConfirm'), true);
         if (!ok) return;
         try {
