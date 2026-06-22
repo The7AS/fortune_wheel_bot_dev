@@ -466,7 +466,7 @@
         if (unsafe.chat_instance) params.set('chat_instance', unsafe.chat_instance);
         return params.toString();
     }
-    const TG_INIT_DATA = buildInitData();
+    let TG_INIT_DATA = buildInitData();
 
     // Debug: log what we have so we can see in Web Inspector Console
     console.log('[init] tg.initData length:', (tg.initData || '').length);
@@ -474,6 +474,29 @@
     console.log('[init] TG_INIT_DATA length:', TG_INIT_DATA.length);
     console.log('[init] TG_INIT_DATA preview:', TG_INIT_DATA.substring(0, 200));
     console.log('[init] Telegram WebApp version:', tg.version);
+
+    // After widget login, we receive full auth payload (id, hash, auth_date, etc.)
+    // in onTelegramAuth(user). Use it to build initData for HMAC verification.
+    function rebuildInitDataFromWidget(user) {
+        if (!user || !user.hash || !user.auth_date) return false;
+        // Telegram widget provides user, hash, auth_date. Build the canonical
+        // initData query string the worker expects.
+        const params = new URLSearchParams();
+        // user object must be JSON-encoded as the 'user' param
+        params.set('user', JSON.stringify({
+            id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            username: user.username,
+            photo_url: user.photo_url,
+            language_code: user.language_code,
+            is_bot: user.is_bot,
+        }));
+        params.set('hash', String(user.hash));
+        params.set('auth_date', String(user.auth_date));
+        if (user.start_param) params.set('start_param', String(user.start_param));
+        return params.toString();
+    }
     function showAlert(msg) { try { window.Telegram.WebApp.showAlert(msg); } catch(e) { alert(msg); } }
     function toast(msg) { const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('active'); clearTimeout(t._hide); t._hide=setTimeout(()=>t.classList.remove('active'),3000); }
     function haptic(style) { try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(style); } catch(e) {} }
@@ -920,6 +943,19 @@
 
     async function initUser(user) {
         currentUserTelegramId = user.id.toString();
+
+        // If we logged in via Telegram Login Widget (not Mini App), the user
+        // object includes hash+auth_date which we can use to build initData
+        // for HMAC verification.
+        if (!TG_INIT_DATA || TG_INIT_DATA.length === 0) {
+            const rebuilt = rebuildInitDataFromWidget(user);
+            if (rebuilt) {
+                TG_INIT_DATA = rebuilt;
+                console.log('[initUser] rebuilt initData from widget, length:', TG_INIT_DATA.length);
+            } else {
+                console.warn('[initUser] no initData available — worker calls will fail HMAC');
+            }
+        }
         isAdmin = (currentUserTelegramId === ADMIN_ID);
         const firstName = user.first_name || 'Пользователь';
         const username = user.username || '';
