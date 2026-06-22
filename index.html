@@ -447,8 +447,27 @@
     const ADMIN_ID = '452456163';
     const tg = window.Telegram.WebApp;
     tg.ready();
-    // Stage 3.1+3.2: capture raw initData for future Worker HMAC verification
-    const TG_INIT_DATA = (typeof tg.initData === 'string') ? tg.initData : '';
+    // Stage 3.1+3.2: capture raw initData for Worker HMAC verification.
+    // Old Telegram (6.x) doesn't populate tg.initData — we fall back to
+    // reconstructing it from tg.initDataUnsafe, which DOES contain user/hash.
+    function buildInitData() {
+        if (typeof tg.initData === 'string' && tg.initData.length > 0) {
+            return tg.initData;
+        }
+        const unsafe = tg.initDataUnsafe || {};
+        if (!unsafe.user || !unsafe.hash || !unsafe.auth_date) return '';
+        // Reconstruct minimal initData string with fields Telegram signs.
+        const params = new URLSearchParams();
+        params.set('user', JSON.stringify(unsafe.user));
+        params.set('hash', unsafe.hash);
+        params.set('auth_date', String(unsafe.auth_date));
+        if (unsafe.start_param) params.set('start_param', unsafe.start_param);
+        if (unsafe.query_id) params.set('query_id', unsafe.query_id);
+        if (unsafe.chat_type) params.set('chat_type', unsafe.chat_type);
+        if (unsafe.chat_instance) params.set('chat_instance', unsafe.chat_instance);
+        return params.toString();
+    }
+    const TG_INIT_DATA = buildInitData();
     function showAlert(msg) { try { window.Telegram.WebApp.showAlert(msg); } catch(e) { alert(msg); } }
     function toast(msg) { const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('active'); clearTimeout(t._hide); t._hide=setTimeout(()=>t.classList.remove('active'),3000); }
     function haptic(style) { try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(style); } catch(e) {} }
