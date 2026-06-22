@@ -509,6 +509,7 @@
             const err = new Error(data.message || ('HTTP ' + r.status));
             err.status = r.status;
             err.code = data.error || 'unknown';
+            console.error('[apiCall]', path, '→', r.status, err.code, err.message);
             throw err;
         }
         return data;
@@ -945,7 +946,8 @@
                 console.log('Worker auth OK as', res.user && res.user.telegramId, 'isNew=', isNewUser);
             } catch (e) {
                 console.error('Worker auth failed:', e);
-                showAlert(t('errorAuth') || 'Сервер недоступен. Игра в ограниченном режиме.');
+                const detail = `${e.code || 'error'}: ${e.message || 'unknown'}`;
+                showAlert(t('errorAuth') + ' [' + detail + ']');
             }
         } else {
             console.warn('WORKER_URL is empty — local dev fallback (writes will fail)');
