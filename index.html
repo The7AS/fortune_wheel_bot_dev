@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>FortuneFlip (dev)</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #1a1a2e; --surface: #16213e; --text: #eee; --accent: #e94560; --input-bg: #0f3460; --border: #0f3460; --muted-text: #aaa; --radius: 20px; --shadow: 0 8px 20px rgba(0,0,0,0.5); }
@@ -469,13 +466,8 @@
         return h;
     }
 
-    // Stage 4: URL of the Cloudflare Worker that proxies all writes
-    // Set to '' to bypass Worker (fallback to direct RTDB writes — for local dev without Worker)
-    const WORKER_URL = 'https://fortuneflip-proxy.YOUR_SUBDOMAIN.workers.dev';
-    // In-memory cache of the Firebase custom token (issued by /api/auth).
-    let _fbCustomToken = null;
-    let _fbCustomTokenIssuedAt = 0;
-    const CUSTOM_TOKEN_TTL_MS = 50 * 60 * 1000; // refresh after 50 min (server TTL is 60)
+    // Stage 4c: URL of the Cloudflare Worker (D1-backed). Set to '' to bypass.
+    const WORKER_URL = 'https://fortuneflip-proxy.https://fortuneflip-proxy.alex-alpatov-01.workers.dev;
 
     // Stage 4: generic Worker call. Returns parsed JSON on success, throws on error.
     async function apiCall(path, body) {
@@ -555,31 +547,23 @@
         }
     }
 
-    let db = null;
-    try {
-        firebase.initializeApp({
-            apiKey: "AIzaSyBG_pWCBwZZn0q5uq2qo7OyL1gE8Wy-ipw",
-            authDomain: "fortunef3s-bot.firebaseapp.com",
-            databaseURL: "https://fortunef3s-bot-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "fortunef3s-bot",
-            storageBucket: "fortunef3s-bot.firebasestorage.app",
-            messagingSenderId: "346933796337",
-            appId: "1:346933796337:web:75264443e0c3de75273850"
+    let dbOk = false;
+    if (WORKER_URL) {
+        fetch(WORKER_URL + '/api/health').then(r => r.json()).then(h => {
+            dbOk = h && h.d1 === 'up';
+            const st = document.getElementById('dbStatusText');
+            if (st) st.innerHTML = dbOk
+                ? `<span class="ok">${t('dbOk')}</span>`
+                : `<span class="err">${t('dbErr')}</span>`;
+            if (dbOk) console.log('D1 ready, userCount=', h.userCount);
+        }).catch(e => {
+            console.error('D1 health failed:', e);
+            const st = document.getElementById('dbStatusText');
+            if (st) st.innerHTML = `<span class="err">${t('dbErr')}</span>`;
         });
-        firebase.storage = undefined;
-        db = firebase.database();
-        console.log('Firebase ready');
-        db.ref('.info/serverTimeOffset').once('value').then(() => {
-            document.getElementById('dbStatusText').innerHTML = '<span class="ok">подключена</span>';
-            db.ref('_diag').set({ts: Date.now()}).then(() => console.log('Firebase WRITE OK'))
-                .catch(e => console.error('Firebase WRITE FAIL:', e));
-        }).catch(() => {
-            document.getElementById('dbStatusText').innerHTML = '<span class="err">недоступна</span>';
-        });
-    } catch (e) {
-        console.warn('No Firebase:', e);
+    } else {
         const st = document.getElementById('dbStatusText');
-        if (st) st.innerHTML = '<span class="err">не подключена</span>';
+        if (st) st.innerHTML = `<span class="err">${t('dbNo')}</span>`;
     }
 
     let currentUserTelegramId = null, isAdmin = false, allUsersData = [], friendIds = new Set(JSON.parse(localStorage.getItem('friendIds') || '[]'));
@@ -872,6 +856,42 @@
 
     let donateAngle = 0, donateVelocity = 0, donateDecay = 0.985, donateAnimationId = null, isDonateSpinning = false;
 
+    let _statePollId = null;
+
+    function applyUserState(data) {
+        if (!data) return;
+        currentUserNick = data.nickname || data.firstName || '';
+        const nickDisplay = document.getElementById('userNickDisplay');
+        if (nickDisplay) {
+            nickDisplay.textContent = currentUserNick;
+            if (isAdmin) nickDisplay.classList.add('admin-nick');
+        }
+        if (data.photoUrl) document.getElementById('userAvatar').src = data.photoUrl;
+        fortBalance = data.fart || 0;
+        updateBalanceDisplay();
+    }
+
+    async function pollState() {
+        if (!WORKER_URL) return;
+        try {
+            const res = await fetch(WORKER_URL + '/api/state', { headers: getTgAuthHeaders() });
+            if (res.ok) {
+                const j = await res.json();
+                if (j && j.user) applyUserState(j.user);
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    function startStatePolling() {
+        if (_statePollId) clearInterval(_statePollId);
+        _statePollId = setInterval(pollState, 5000);
+    }
+
+    function stopStatePolling() {
+        if (_statePollId) clearInterval(_statePollId);
+        _statePollId = null;
+    }
+
     async function initUser(user) {
         currentUserTelegramId = user.id.toString();
         isAdmin = (currentUserTelegramId === ADMIN_ID);
@@ -887,51 +907,32 @@
         if (photoUrl) document.getElementById('userAvatar').src = photoUrl;
         applyLang();
 
-        // Stage 4: authenticate with Worker (issues Firebase custom token + ensures user record exists)
+        // Stage 4c: Worker holds the only DB connection. /api/auth ensures user row,
+        // /api/state returns the full row, and we poll every 5s for updates
+        // (e.g., admin reset). No more Firebase SDK on the client.
         let authOk = false, isNewUser = false;
         if (WORKER_URL) {
             try {
                 const res = await apiCall('/api/auth', {});
-                _fbCustomToken = res.token;
-                _fbCustomTokenIssuedAt = Date.now();
-                await firebase.auth().signInWithCustomToken(res.token);
                 authOk = true;
                 isNewUser = !!res.isNew;
-                if (isAdmin) { /* server already knows */ }
-                console.log('Worker auth OK as', res.user.id, 'isNew=', isNewUser);
+                if (res.user) applyUserState(res.user);
+                console.log('Worker auth OK as', res.user && res.user.telegramId, 'isNew=', isNewUser);
             } catch (e) {
                 console.error('Worker auth failed:', e);
-                // Continue with anonymous read-only access; writes will fail gracefully
                 showAlert(t('errorAuth') || 'Сервер недоступен. Игра в ограниченном режиме.');
             }
         } else {
-            // Local dev fallback: no Worker, use anonymous auth (deprecated path)
-            console.warn('WORKER_URL is empty — using direct anonymous access (writes may fail)');
-            try { await firebase.auth().signInAnonymously(); } catch (e) { /* ignore */ }
+            console.warn('WORKER_URL is empty — local dev fallback (writes will fail)');
         }
 
-        if (db) {
-            const userRef = db.ref('users/' + currentUserTelegramId);
-            // Worker has already created the user record (with fart: 100, spins: 0).
-            // Client just listens and updates UI.
-            db.ref('users/' + currentUserTelegramId).on('value', snap => {
-                const data = snap.val();
-                if (data) {
-                    currentUserNick = data.nickname || data.firstName || '';
-                    nickDisplay.textContent = currentUserNick;
-                    if (isAdmin) nickDisplay.classList.add('admin-nick');
-                    if (data.photoUrl) document.getElementById('userAvatar').src = data.photoUrl;
-                    fortBalance = data.fart || 0;
-                    updateBalanceDisplay();
-                }
-            }, err => { console.error('Firebase user listen error:', err); showAlert(t('errorRead')); });
-            loadAllUsers();
+        startStatePolling();
+        loadAllUsers();
 
-            // Show welcome modal for new users (Worker created the record with fart: 100)
-            if (isNewUser && authOk) {
-                fortBalance = 100; updateBalanceDisplay();
-                document.getElementById('welcomeModal').classList.add('active');
-            }
+        // Show welcome modal for new users (Worker created the record with fart: 100)
+        if (isNewUser && authOk) {
+            fortBalance = 100; updateBalanceDisplay();
+            document.getElementById('welcomeModal').classList.add('active');
         }
         if (isAdmin) {
             document.getElementById('adminPanelBtn').style.display = 'block';
@@ -1576,10 +1577,10 @@
         o.start(); o.stop(audioCtx.currentTime+0.2);
     }
 
-    let _usersListenerAttached = false;
+    let _usersPollId = null;
 
-    function loadAllUsers() {
-        if (!db) return;
+    async function loadAllUsers() {
+        if (!WORKER_URL) return;
 
         // Кэш лидерборда (5 мин) — сразу показываем, не пусто
         const cached = JSON.parse(localStorage.getItem('lb_cache') || '{}');
@@ -1588,35 +1589,28 @@
             sortAndRenderLeaderboard();
         }
 
-        if (_usersListenerAttached) return;
-        _usersListenerAttached = true;
-
-        // 1) Однократная миграция старых юзеров: spins -> spins_daily, spins_donate = 0
-        db.ref('users').once('value').then(snap => {
-            if (!snap.exists()) return;
-            const updates = {};
-            snap.forEach(child => {
-                const u = child.val();
-                if (u.spins !== undefined && u.spins_daily === undefined) {
-                    updates[child.key + '/spins_daily'] = u.spins;
-                    updates[child.key + '/spins_donate'] = 0;
-                } else if (u.spins_donate === undefined) {
-                    updates[child.key + '/spins_donate'] = 0;
-                }
-            });
-            if (Object.keys(updates).length) {
-                db.ref('users').update(updates).then(() => console.log('Migration done:', Object.keys(updates).length / 2, 'users'));
+        const fetchUsers = async () => {
+            try {
+                const friendParam = encodeURIComponent(JSON.stringify(Array.from(friendIds)));
+                const res = await fetch(
+                    WORKER_URL + '/api/users?sortBy=spins&order=desc&limit=100&friendIds=' + friendParam,
+                    { headers: getTgAuthHeaders() }
+                );
+                if (!res.ok) return;
+                const j = await res.json();
+                if (!j || !j.users) return;
+                allUsersData = j.users.map(u => ({ id: u.telegramId, ...u }));
+                localStorage.setItem('lb_cache', JSON.stringify({ ts: Date.now(), users: allUsersData.slice(0, 100) }));
+                sortAndRenderLeaderboard();
+            } catch (e) {
+                console.error('loadAllUsers failed:', e);
             }
-        });
+        };
 
-        // 2) Реалтайм-лидерборд: загружаем всех, сортируем по спинам на клиенте
-        db.ref('users').on('value', snap => {
-            allUsersData = [];
-            if (snap.exists()) snap.forEach(c => allUsersData.push({ id: c.key, ...c.val() }));
-            // Сохраняем кэш
-            localStorage.setItem('lb_cache', JSON.stringify({ ts: Date.now(), users: allUsersData.slice(0, 100) }));
-            sortAndRenderLeaderboard();
-        }, err => console.error('Leaderboard listen error:', err));
+        await fetchUsers();
+        // Poll every 10s — replaces the old Firebase .on('value') listener.
+        if (_usersPollId) clearInterval(_usersPollId);
+        _usersPollId = setInterval(fetchUsers, 10000);
     }
     function sortAndRenderLeaderboard() {
         const sortField = currentMode === 'daily' ? 'spins_daily' : 'spins_donate';
