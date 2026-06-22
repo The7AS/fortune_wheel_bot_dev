@@ -456,7 +456,6 @@
         }
         const unsafe = tg.initDataUnsafe || {};
         if (!unsafe.user || !unsafe.hash || !unsafe.auth_date) return '';
-        // Reconstruct minimal initData string with fields Telegram signs.
         const params = new URLSearchParams();
         params.set('user', JSON.stringify(unsafe.user));
         params.set('hash', unsafe.hash);
@@ -468,6 +467,13 @@
         return params.toString();
     }
     const TG_INIT_DATA = buildInitData();
+
+    // Debug: log what we have so we can see in Web Inspector Console
+    console.log('[init] tg.initData length:', (tg.initData || '').length);
+    console.log('[init] tg.initDataUnsafe:', JSON.stringify(tg.initDataUnsafe || {}));
+    console.log('[init] TG_INIT_DATA length:', TG_INIT_DATA.length);
+    console.log('[init] TG_INIT_DATA preview:', TG_INIT_DATA.substring(0, 200));
+    console.log('[init] Telegram WebApp version:', tg.version);
     function showAlert(msg) { try { window.Telegram.WebApp.showAlert(msg); } catch(e) { alert(msg); } }
     function toast(msg) { const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('active'); clearTimeout(t._hide); t._hide=setTimeout(()=>t.classList.remove('active'),3000); }
     function haptic(style) { try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(style); } catch(e) {} }
