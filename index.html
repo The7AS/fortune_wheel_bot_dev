@@ -532,7 +532,8 @@
             const err = new Error(data.message || ('HTTP ' + r.status));
             err.status = r.status;
             err.code = data.error || 'unknown';
-            console.error('[apiCall]', path, '→', r.status, err.code, err.message);
+            if (data.debug) err.debug = data.debug;
+            console.error('[apiCall]', path, '→', r.status, err.code, err.message, err.debug || '');
             throw err;
         }
         return data;
@@ -983,7 +984,8 @@
             } catch (e) {
                 console.error('Worker auth failed:', e);
                 const detail = `${e.code || 'error'}: ${e.message || 'unknown'}`;
-                showAlert(t('errorAuth') + ' [' + detail + ']');
+                const dbg = e.debug ? ' ' + JSON.stringify(e.debug) : '';
+                showAlert(t('errorAuth') + ' [' + detail + dbg + ']');
             }
         } else {
             console.warn('WORKER_URL is empty — local dev fallback (writes will fail)');
